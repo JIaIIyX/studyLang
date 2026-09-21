@@ -4,7 +4,7 @@ import { extractQuizAnswer } from './practiceTags'
 import { extractQuizChoices } from './quizChoices'
 import { plausibleQuizOptions } from './quizDistractors'
 import { bindQuizAnswer } from './quizReply'
-import { localTutorReply, polishTutorReply } from './tutor'
+import { localTutorReply, polishTutorReply, wantsVocabList } from './tutor'
 import { gradeGuess } from './tutorGrade'
 import { gradeLastQuiz, makeLocalQuiz } from './tutorQuiz'
 
@@ -19,6 +19,17 @@ function msg(role: ChatMessage['role'], content: string, extra: Partial<ChatMess
 
 check('дай правила is a rules request', wantsLessonRules('Дай правила'))
 check('дай правила is explain', classifyTutorTask('Дай правила', { quizOpen: false, leftQuiz: false }) === 'explain')
+check(
+  'эти слова is a vocab wish',
+  wantsVocabList([msg('assistant', 'фразы'), msg('user', 'Можешь добавить в словарь эти слова?')]),
+)
+check(
+  'quoted add-to-dictionary is a vocab wish',
+  wantsVocabList([
+    msg('assistant', 'x', { id: 'greet' }),
+    msg('user', 'добавь в словарь', { refIds: ['greet'], refSnippet: 'Guten Tag' }),
+  ]),
+)
 
 const rulesAsButtons = [
   'Вот правила урока:',

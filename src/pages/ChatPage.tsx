@@ -13,6 +13,7 @@ import { languageMeta } from '../lib/languages'
 import { messageAnchor, messageNo, previewMessage } from '../lib/messageRef'
 import { getSnapshot } from '../lib/persist'
 import { forgetTutorLibrary, makeVocabReply, replyAsTutor, wantsSpokenDialogue, wantsVocabList } from '../lib/tutor'
+import { isReferentialVocabWish } from '../lib/vocabFromContext'
 import { bindQuizAnswer } from '../lib/quizReply'
 import { extractQuizAnswer } from '../lib/practiceTags'
 import { extractQuizChoices } from '../lib/quizChoices'
@@ -256,7 +257,7 @@ export function ChatPage() {
       return
     }
 
-    if (wantsVocabList(nextHistory)) {
+    if (wantsVocabList(nextHistory) || isReferentialVocabWish(posted) || (refIds.length > 0 && /слов|фраз|словар|добав/i.test(posted))) {
       await postVocab(id, nextHistory, gen)
       return
     }
@@ -581,7 +582,7 @@ export function ChatPage() {
                       </div>
                     ) : null}
                     {message.refSnippet ? (
-                      <p className="mb-1.5 line-clamp-2 border-l-2 border-cream/30 pl-2 text-[12px] leading-4 text-cream/55">
+                      <p className="mb-1.5 line-clamp-2 min-w-0 break-words border-l-2 border-cream/30 pl-2 text-[12px] leading-4 text-cream/55">
                         {message.refSnippet}
                       </p>
                     ) : null}
@@ -725,12 +726,12 @@ export function ChatPage() {
                   return (
                     <span
                       key={id}
-                      className="inline-flex max-w-full items-center gap-1 rounded-full bg-canvas py-1 pl-2 pr-1 text-[12px]"
+                      className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full bg-canvas py-1 pl-2 pr-1 text-[12px]"
                     >
-                      <a href={`#${messageAnchor(id)}`} className="font-mono text-terracotta">
+                      <a href={`#${messageAnchor(id)}`} className="shrink-0 font-mono text-terracotta">
                         ↳ #{n}
                       </a>
-                      <span className="truncate text-muted">{previewMessage(target.content, 28)}</span>
+                      <span className="min-w-0 truncate text-muted">{previewMessage(target.content, 28)}</span>
                       <button
                         type="button"
                         onClick={() => toggleAttach(id)}

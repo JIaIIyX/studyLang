@@ -117,13 +117,15 @@ export function wantsSpokenDialogue(text: string) {
 export function wantsVocabList(messages: ChatMessage[]) {
   const last = messages.at(-1)?.content ?? ''
   const text = last.toLowerCase()
+  const hasRef = Boolean(messages.at(-1)?.refIds?.length || messages.at(-1)?.refSnippet)
   if (/(домашн|домашк|тетрад|homework|(?:^|[^\p{L}])д[/.]?з(?:$|[^\p{L}]))/iu.test(text)) return false
   if (/(проверь меня|квиз|как переводится|слово с полки|из файла)/i.test(text) && !/придумай|собери|словар|набор/.test(text)) {
     return false
   }
   if (/таблиц/.test(text) && !/слов|набор|словар|на полк|придумай|собери/.test(text)) return false
+  if (isReferentialVocabWish(last) || (hasRef && /слов|фраз|словар|добав/i.test(last))) return true
   if (
-    /придумай|составь|собери|создай|словар|на полк|коллекц|набор|flashcard|\bdeck\b|vocabulary|список слов|карточки|слов(?:а|о)? (?:на тему|по теме|про |для )|(?:дай|дайте|нужно|хочу)\s+(?:мне\s+)?(?:\d+\s+)?(?:слов|фраз)|(?:\d+|пять|шесть|семь|восемь|девять|десять)\s+(?:слов|фраз)/i.test(
+    /придумай|составь|собери|создай|словар|на полк|коллекц|набор|flashcard|\bdeck\b|vocabulary|список слов|карточки|слов(?:а|о)? (?:на тему|по теме|про |для )|(?:дай|дайте|нужно|хочу)\s+(?:мне\s+)?(?:\d+\s+)?(?:слов|фраз)|(?:\d+|пять|шесть|семь|восемь|девять|десять)\s+(?:слов|фраз)|добав.{0,32}(?:слов|фраз|словар)/i.test(
       last,
     )
   ) {
