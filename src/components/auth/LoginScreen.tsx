@@ -1,12 +1,7 @@
 import { useState } from 'react'
 
-type Props = {
-  onGuest: () => Promise<void>
-}
-
-export function LoginScreen({ onGuest }: Props) {
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+export function LoginScreen() {
+  const [error] = useState('')
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-canvas px-6 text-ink">
@@ -14,8 +9,7 @@ export function LoginScreen({ onGuest }: Props) {
         <p className="text-[11px] uppercase tracking-[0.18em] text-terracotta">atelier</p>
         <h1 className="mt-2 font-display text-4xl italic">StudyLang</h1>
         <p className="mt-3 text-sm leading-6 text-muted">
-          Учите язык в чате, на полке слов и в коротких диалогах. Можно начать сразу как гость — прогресс
-          сохранится на этом устройстве.
+          Войти через Google, чтобы чаты, словарь и прогресс сохранялись на сервере.
         </p>
         <a
           href="/api/auth/google/start"
@@ -23,24 +17,9 @@ export function LoginScreen({ onGuest }: Props) {
         >
           Войти через Google
         </a>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setError('')
-            setBusy(true)
-            void onGuest()
-              .catch(() => setError('Не удалось войти как гость. Проверьте, что API запущен.'))
-              .finally(() => setBusy(false))
-          }}
-          className="mt-3 flex h-12 w-full items-center justify-center rounded-full border border-line bg-canvas text-sm font-medium hover:bg-hover disabled:opacity-50"
-        >
-          {busy ? 'Входим…' : 'Продолжить без Google'}
-        </button>
         {error ? <p className="mt-3 text-sm text-terracotta">{error}</p> : null}
         <p className="mt-6 text-xs leading-5 text-muted">
-          Google нужен, если хотите синхронизировать профиль между устройствами. Для теста на этом компьютере
-          достаточно гостевого входа.
+          Google нужен, чтобы хранить прогресс между устройствами. Гостевой вход отключён.
         </p>
       </div>
     </div>
