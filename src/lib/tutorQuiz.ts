@@ -4,7 +4,9 @@ import { inPractice, LLM_BUDGET } from './llmTasks'
 import { canonicalizeQuiz, extractQuizAnswer, extractQuizAnswers, fixReplySpaces, hasTenseCue, keepFirstExercise, quizPickMode } from './practiceTags'
 import { extractQuizChoices, quizQuestionText, refersToPassage, hasReadingStimulus, looksLikeLeavingQuiz, looksLikeQuizRequest } from './quizChoices'
 import { picksFromChoices } from './quizReply'
-import { fold, matchAnswerSet, matchesAnswer, shuffle } from './normalize'
+import { fold, matchesAnswer, shuffle } from './normalize'
+import { almostReason, gradeGuess, joinGradeAnswers, type GradeVerdict } from './tutorGrade'
+import { plausibleQuizOptions } from './quizDistractors'
 import {
   catalogDigest,
   catalogFromMessages,
@@ -144,23 +146,17 @@ function quizKeys(item: QuizItem) {
   return [...new Set(keys)]
 }
 
-function uniqueOptions(correct: string[], extras: string[], max = 4) {
-  const list: string[] = []
-  for (const item of [...correct, ...extras]) {
-    if (!item || list.some((row) => fold(row) === fold(item))) continue
-    list.push(item)
-    if (list.length >= max) break
-  }
-  return list.length >= 2 ? shuffle(list) : []
+function uniqueOptions(correct: string[], extras: string[], prompt: string, language: Language, max = 4) {
+  return plausibleQuizOptions(correct, extras, prompt, language, max)
 }
 
-function formatQuiz(item: QuizItem) {
+function formatQuiz(item: QuizItem, language: Language) {
   const keys = quizKeys(item)
   if (!keys.length) return ''
   if (item.write) {
     return [item.prompt, item.blank ?? '', ...keys.map((row) => `<answer>${row}</answer>`)].filter((line) => line !== '').join('\n')
   }
-  const options = uniqueOptions(keys, item.options, 4)
+  const options = uniqueOptions(keys, item.options, `${item.prompt} ${item.blank ?? ''}`, language, 4)
   if (options.length < 2) return ''
   return [
     item.prompt,
@@ -432,7 +428,7 @@ export function makeLocalQuiz(language: Language, entries: WordEntry[], wish: st
     }
     const item = makers[kind]?.()
     if (item) {
-      const text = formatQuiz(item)
+      const text = formatQuiz(item, language)
       if (text && isClearQuiz(text)) return text
     }
   }
@@ -441,7 +437,7 @@ export function makeLocalQuiz(language: Language, entries: WordEntry[], wish: st
     toRuItem(language, pool, catalog) ||
     fromRuItem(language, pool, catalog) ||
     formSeedItem(language, catalog)
-  const text = fallback ? formatQuiz(fallback) : ''
+  const text = fallback ? formatQuiz(fallback, language) : ''
   return text && isClearQuiz(text) ? text : ''
 }
 
@@ -454,40 +450,31 @@ export function lastQuizMessage(messages: ChatMessage[]) {
 }
 
 
-function joinAnswers(items: string[], joiner: 'или' | 'и' | '·') {
-  const clean = items.map((item) => item.trim()).filter(Boolean)
-  if (!clean.length) return ''
-  if (clean.length === 1) return clean[0]
-  if (joiner === '·') return clean.join(' · ')
-  if (clean.length === 2) return `${clean[0]} ${joiner} ${clean[1]}`
-  return `${clean.slice(0, -1).join(', ')} ${joiner} ${clean[clean.length - 1]}`
-}
-
 function explainQuizGrade(opts: {
-  ok: boolean
+  verdict: GradeVerdict
   expected: string[]
   picks: string[]
   mode: 'all' | 'any'
   quizContent: string
+  notes?: string[]
 }) {
-  const { ok, expected, picks, mode, quizContent } = opts
+  const { verdict, expected, picks, mode, quizContent, notes = [] } = opts
   const choices = extractQuizChoices(quizContent)
   const question = quizQuestionText(quizContent) || ''
   const alternatives = expected.length > 1
-  // several =answer tags / either-form gap / explicit "any"
   const eitherOk =
     alternatives &&
     (mode === 'any' ||
       expected.length === choices.length ||
       /оба вариант|любой из|подойд(?:ёт|ут)|either|both ok|любая форм/i.test(quizContent))
 
-  if (ok) {
+  if (verdict === 'correct') {
     if (eitherOk) {
       const label = expected.length === 2 ? 'оба варианта' : 'несколько вариантов'
-      return `Верно. Здесь подходят ${label}: **${joinAnswers(expected, 'и')}**.`
+      return `Верно. Здесь подходят ${label}: **${joinGradeAnswers(expected, 'и')}**.`
     }
     if (mode === 'all' && alternatives) {
-      return `Верно. Нужно было отметить все: **${joinAnswers(expected, 'и')}**.`
+      return `Верно. Нужно было отметить все: **${joinGradeAnswers(expected, 'и')}**.`
     }
     if (/_{2,}|\bформ|\bвремя|\btense|\barticle|\bартик/i.test(question + quizContent) && expected[0]) {
       return `Верно. Форма **${expected[0]}** подходит к этому предложению.`
@@ -500,14 +487,18 @@ function explainQuizGrade(opts: {
 
   const shown = picks.map((item) => item.trim()).filter(Boolean)
   const need = eitherOk
-    ? joinAnswers(expected, 'или')
+    ? joinGradeAnswers(expected, 'или')
     : mode === 'all' && alternatives
-      ? joinAnswers(expected, 'и')
-      : joinAnswers(expected, '·')
+      ? joinGradeAnswers(expected, 'и')
+      : joinGradeAnswers(expected, '·')
+
+  if (verdict === 'almost' && expected[0]) {
+    return `Почти. ${almostReason(notes, shown[0] || '', expected[0])}`
+  }
 
   if (eitherOk) {
     const label = expected.length === 2 ? 'оба' : 'несколько'
-    return `Почти. Здесь верны ${label} варианта: **${joinAnswers(expected, 'или')}**. Ваш ответ не совпал.`
+    return `Почти. Здесь верны ${label} варианта: **${joinGradeAnswers(expected, 'или')}**. Ваш ответ не совпал.`
   }
   if (mode === 'all' && alternatives) {
     return `Почти. Нужно отметить все верные пункты: **${need}**.`
@@ -536,13 +527,47 @@ export function gradeLastQuiz(messages: ChatMessage[]) {
   }
   const picks = picksFromChoices(payload, choices)
   const mode = quizPickMode(previous.content)
-  const ok = matchAnswerSet(picks.join(' | ') || payload, expected, mode)
+  const shown = picks.length ? picks : payload ? [payload] : []
+  const joined = shown.join(' | ') || payload
+  let verdict: GradeVerdict = 'wrong'
+  let notes: string[] = []
+  if (expected.length === 1) {
+    const graded = gradeGuess(joined, expected[0])
+    verdict = graded.verdict
+    notes = graded.notes
+  } else {
+    const wants = expected.map((item) => item.trim()).filter(Boolean)
+    const parts = shown.length ? shown : [payload]
+    if (mode === 'any') {
+      const rows = parts.map((part) => wants.map((want) => gradeGuess(part, want).verdict))
+      if (parts.length && rows.every((row) => row.includes('correct'))) verdict = 'correct'
+      else if (rows.some((row) => row.includes('almost') || row.includes('correct'))) verdict = 'almost'
+    } else if (parts.length === wants.length) {
+      const used = new Set<number>()
+      const rows = parts.map((part) => {
+        const exact = wants.findIndex((want, i) => !used.has(i) && gradeGuess(part, want).verdict === 'correct')
+        if (exact >= 0) {
+          used.add(exact)
+          return 'correct' as GradeVerdict
+        }
+        const almost = wants.findIndex((want, i) => !used.has(i) && gradeGuess(part, want).verdict === 'almost')
+        if (almost >= 0) {
+          used.add(almost)
+          return 'almost' as GradeVerdict
+        }
+        return 'wrong' as GradeVerdict
+      })
+      if (rows.every((row) => row === 'correct')) verdict = 'correct'
+      else if (rows.some((row) => row !== 'wrong')) verdict = 'almost'
+    }
+  }
   return explainQuizGrade({
-    ok,
+    verdict,
     expected,
-    picks: picks.length ? picks : payload ? [payload] : [],
+    picks: shown,
     mode,
     quizContent: previous.content,
+    notes,
   })
 }
 
@@ -669,6 +694,7 @@ function quizSystem(
       'If the question is about a text, quote 2–4 sentences first. Never ask about «the paragraph» without the paragraph.',
       'The question is plain text. [option] is only an answer choice, never the question, never the word options.',
       'The cue in «» must not equal <answer>. Do not quiz a language against itself.',
+      'Distractors must match the answer shape: phrases with other phrases, nouns with nouns. Never use food words (Käse, Milch, apple) as options for a greeting or sentence.',
       pool ? `Prefer a pair from the shelf: ${pool}` : '',
       options?.lesson ? `Lesson to stay on: ${options.lesson.slice(0, 420)}` : '',
       options?.lesson ? 'MUST stay on the student topic from Lesson above. Do not switch to unrelated vocabulary or another tense.' : '',

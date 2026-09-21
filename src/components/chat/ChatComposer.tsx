@@ -43,7 +43,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(function ChatC
       <button
         type="button"
         onClick={onToggleMenu}
-        className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-hover"
+        className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-hover"
         aria-label="Инструменты"
       >
         <Plus className="h-5 w-5" />
@@ -60,12 +60,12 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(function ChatC
         }}
         rows={1}
         placeholder={placeholder}
-        className="max-h-36 min-h-10 flex-1 resize-none bg-transparent py-2.5 text-[15px] outline-none placeholder:text-muted"
+        className="max-h-36 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[16px] outline-none placeholder:text-muted sm:text-[15px]"
       />
       <button
         type="button"
         onClick={onOpenDialogue}
-        className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-hover"
+        className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-hover"
         aria-label="Диалог"
       >
         <MessagesSquare className="h-5 w-5" />
@@ -73,7 +73,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(function ChatC
       <button
         type="button"
         onClick={onListen}
-        className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-hover"
+        className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-hover"
         aria-label="Голос"
       >
         <Mic className="h-5 w-5" />
@@ -82,7 +82,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(function ChatC
         type="button"
         onClick={submit}
         disabled={busy || (!draft.trim() && !hasAttachments)}
-        className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-terracotta text-white disabled:opacity-30"
+        className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-terracotta text-white disabled:opacity-30"
         aria-label="Отправить"
       >
         <ArrowUp className="h-5 w-5" />

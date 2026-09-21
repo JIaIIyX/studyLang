@@ -80,6 +80,7 @@ function clipVocabTurn(text: string, maxChars: number) {
 export function compactVocabHistory(
   messages: { role: 'user' | 'model'; text: string }[],
   referential: boolean,
+  focus = '',
 ) {
   const last = messages.at(-1)
   if (!referential) return compactHistory([{ role: 'user', text: last?.text ?? '' }], 'vocab')
@@ -92,6 +93,11 @@ export function compactVocabHistory(
       return { role: item.role, text: clipVocabTurn(item.text, cap) }
     })
     .filter((item) => item.text)
+  if (focus.trim()) {
+    const clipped = clipVocabTurn(focus, 1400)
+    const already = ready.some((item) => item.role === 'model' && item.text.includes(clipped.slice(0, 32)))
+    if (clipped && !already) ready.unshift({ role: 'model', text: clipped })
+  }
   if (ready.some((item) => item.role === 'user')) return ready
   if (!last?.text.trim()) return ready
   return [...ready, { role: 'user' as const, text: clipVocabTurn(last.text, userCap) }]
@@ -132,10 +138,38 @@ export function asksToClarifyTask(text: string) {
   )
 }
 
+export function wantsLessonRules(text: string) {
+  const value = text.trim()
+  if (!value) return false
+  if (
+    /(дай|дайте|покажи|покажите|напиши|выдай|скинь|нужны|хочу|можно)\s+(мне\s+)?правил/i.test(value) ||
+    /правил[аоые].{0,16}(урока|занятия|языка)/i.test(value) ||
+    /^(правил[аоые])([!.?\s]|$)/i.test(value)
+  ) {
+    return true
+  }
+  return false
+}
+
 export function wantsBroadLesson(text: string) {
-  return /(расскажи|разбер|объясни).{0,24}(правил|английск|француз|немецк)|все правил|основы языка|правила англий/i.test(
-    text,
+  return (
+    wantsLessonRules(text) ||
+    /(расскажи|разбер|объясни).{0,24}(правил|английск|француз|немецк)|все правил|основы языка|правила англий/i.test(
+      text,
+    )
   )
+}
+
+export function lessonSetupReply() {
+  return [
+    'Давайте выберем, с чего начать — без теста и без кнопок.',
+    '',
+    '1. Порядок слов в предложении',
+    '2. Времена',
+    '3. Артикли',
+    '',
+    'Напишите номер пункта — разберём его.',
+  ].join('\n')
 }
 
 export function wantsDeeper(text: string) {
@@ -148,8 +182,9 @@ export function classifyTutorTask(
   last: string,
   state: { quizOpen: boolean; leftQuiz: boolean },
 ): TutorTask {
+  if (wantsLessonRules(last) || wantsBroadLesson(last)) return 'explain'
   if (looksLikeQuizRequest(last)) return 'quiz'
-  if (asksToClarifyTask(last) || picksLessonItem(last) || wantsBroadLesson(last) || wantsDeeper(last)) return 'explain'
+  if (asksToClarifyTask(last) || picksLessonItem(last) || wantsDeeper(last)) return 'explain'
   if (state.leftQuiz) return 'explain'
   if (state.quizOpen) return 'grade'
   if (
@@ -208,16 +243,21 @@ function markupGuide(language: Language) {
 
 export function lessonFromThread(messages: ChatMessage[]) {
   const recent = messages.slice(-12)
+  const lastUser = [...recent].reverse().find((item) => item.role === 'user')
+  const refIds = [...(lastUser?.refIds ?? []), ...parseMessageRefs(lastUser?.content ?? '', messages)]
+  const refs = resolveMessageRefs(messages, refIds)
   const blob = recent.map((item) => item.content).join('\n')
   const grammar =
     /(врем|предложен|артикл|грамматик|порядок слов|спряжен|склонен|present|past simple|perfect|continuous|imparfait|passé|perfekt)/i.test(
       blob,
     )
-  const lastTeach = [...recent].reverse().find((item) => {
-    if (item.role !== 'assistant') return false
-    if (extractQuizAnswer(item.content)) return false
-    return extractQuizChoices(item.content).length < 2
-  })
+  const lastTeach =
+    refs.find((item) => item.role === 'assistant' && item.content.trim()) ||
+    [...recent].reverse().find((item) => {
+      if (item.role !== 'assistant') return false
+      if (extractQuizAnswer(item.content)) return false
+      return extractQuizChoices(item.content).length < 2
+    })
   const excerpt = shrinkTurn(
     (lastTeach?.content ?? '')
       .replace(/<[^>]+>/g, ' ')
@@ -342,7 +382,7 @@ function exLine(language: Language) {
 }
 
 export function isQuizItem(text: string) {
-  return Boolean(extractQuizAnswer(text)) || extractQuizChoices(text).length >= 2
+  return Boolean(extractQuizAnswer(text))
 }
 
 export function quizState(messages: ChatMessage[]) {
@@ -399,10 +439,12 @@ export function buildTutorSystem(
         'They want to go DEEPER on the same topic you just taught. Do not restart from the definition or the menu.',
         'Assume the one-line intro is already known. Add a new angle: a contrast, an exception, or a second example.',
       )
-    } else if (wantsBroadLesson(last)) {
+    } else if (wantsBroadLesson(last) || wantsLessonRules(last)) {
       lines.push(
         'The topic is huge. Do not lecture and do not dump five chapters.',
-        'Offer 3 numbered choices in Russian (word order / tenses / articles). No examples yet. Wait for a number.',
+        'Offer 3 numbered choices in Russian (word order / tenses / articles) as a PLAIN numbered list.',
+        'Never wrap rules or menu items in [options], <btn>, or quiz markup. Do not start a vocabulary quiz.',
+        'No examples yet. Wait for a number.',
       )
     } else {
       lines.push(
@@ -433,7 +475,12 @@ export function buildTutorSystem(
 
   if (options?.skillFocus) lines.push(options.skillFocus)
   if (style) lines.push(style)
-  if (refs.length) lines.push(formatRefBlock(messages, refs))
+  if (refs.length) {
+    lines.push(formatRefBlock(messages, refs))
+    lines.push(
+      'The attached message is the authoritative context. If they ask for words, an explanation, or exercises, use THAT text — do not invent another topic pack.',
+    )
+  }
 
   return lines.filter(Boolean).join('\n')
 }

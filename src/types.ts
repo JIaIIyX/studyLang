@@ -67,6 +67,7 @@ export type ChatMessage = {
   fileSaved?: boolean
   fileId?: string
   refIds?: string[]
+  refSnippet?: string
   homeworkId?: string
 }
 

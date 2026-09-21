@@ -9,7 +9,7 @@
     "dev:api": "tsx watch server/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "tsx src/lib/vocabFromContext.test.ts"
+    "test": "tsx src/lib/vocabFromContext.test.ts && tsx src/lib/tutorChatQuality.test.ts"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

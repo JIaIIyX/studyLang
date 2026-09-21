@@ -1,4 +1,4 @@
-import { canonicalizeQuiz, extractQuizAnswer, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt } from './practiceTags'
+import { canonicalizeQuiz, demoteNonQuizButtons, extractQuizAnswer, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt, stripQuizMarkup } from './practiceTags'
 import { extractQuizChoices, looksLikeQuizRequest } from './quizChoices'
 import { askGemini, hasGemini, isQuotaError, MODEL_TIMEOUT_HINT } from './llm'
 import { languageMeta, sectionMeta } from './languages'
@@ -9,8 +9,11 @@ import {
   extractAskedPhrase,
   isSimpleSay,
   lessonFromThread,
+  lessonSetupReply,
+  picksLessonItem,
   wantsBroadLesson,
   wantsDeeper,
+  wantsLessonRules,
   quizState,
   tutorAskOptions,
   tutorTurns,
@@ -20,10 +23,11 @@ import {
   buildQuizWish,
 } from './llmTasks'
 import {
+  contextForVocab,
   groundVocabInContext,
+  isExplicitVocabTheme,
   isReferentialVocabWish,
   localVocabDraft,
-  previousAssistantContent,
 } from './vocabFromContext'
 import { recordQuizResult, skillQuizWish, skillTutorLine } from './skills'
 import { gradeLastQuiz, gradeLocalQuiz, improviseQuiz, lastQuizMessage, makeLocalQuiz } from './tutorQuiz'
@@ -171,9 +175,13 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
 
   const lower = last.toLowerCase()
   if (wantsVocabList(messages)) {
-    const prior = previous?.role === 'assistant' ? previous.content : ''
-    const fallback = localVocabDraft(language, last, new Set(), prior)
+    const prior = contextForVocab(messages)
+    const hasRef = Boolean(messages.at(-1)?.refIds?.length || messages.at(-1)?.refSnippet)
+    const fallback = localVocabDraft(language, last, new Set(), prior, hasRef)
     return fallback ? vocabPreface('', fallback.title) : 'Напишите тему, например «словарь про еду».'
+  }
+  if (wantsLessonRules(last) || wantsBroadLesson(last)) {
+    return lessonSetupReply()
   }
   if (/таблиц/i.test(lower)) {
     const sample = entries.slice(0, 6)
@@ -199,6 +207,10 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
   if (grammar) return grammar
 
   return ''
+}
+
+export function localTutorReply(language: Language, messages: ChatMessage[], entries: WordEntry[]) {
+  return localReply(language, messages, entries)
 }
 
 function findShelfHit(entries: WordEntry[], needle: string) {
@@ -313,13 +325,26 @@ async function answerWithoutModel(language: Language, messages: ChatMessage[], e
 
 export type TutorReply = { text: string; file?: VocabDraft | null; retry?: boolean }
 
-function polishTutorReply(
+export function polishTutorReply(
   text: string,
   task: ReturnType<typeof classifyTutorTask>,
   last: string,
   language: Language,
 ) {
   let next = canonicalizeQuiz(fixReplySpaces(text))
+  if (task === 'explain' || task === 'general' || task === 'say') {
+    if (wantsLessonRules(last) || wantsBroadLesson(last)) {
+      if (extractQuizAnswer(next)) {
+        const prose = stripQuizMarkup(next)
+        next = prose || lessonSetupReply()
+      } else {
+        next = demoteNonQuizButtons(next)
+      }
+      if (/<(btn|opt|answer)>/i.test(next)) next = stripQuizMarkup(next) || lessonSetupReply()
+    } else {
+      next = demoteNonQuizButtons(next)
+    }
+  }
   if (task === 'quiz' || task === 'grade' || extractQuizAnswer(next) || extractQuizChoices(next).length >= 2) {
     next = keepFirstExercise(next)
   }
@@ -369,6 +394,10 @@ export async function replyAsTutor(
   const entries = allEntries(files)
   const { quizOpen, leftQuiz } = quizState(thread)
   const task = classifyTutorTask(last, { quizOpen, leftQuiz })
+
+  if (wantsLessonRules(last) || (task === 'explain' && wantsBroadLesson(last) && !picksLessonItem(last) && !wantsDeeper(last))) {
+    return { text: lessonSetupReply() }
+  }
 
   if (!hasGemini()) {
     return { text: await answerWithoutModel(language, thread, entries) }
@@ -454,8 +483,8 @@ export async function replyAsTutor(
   }
 }
 
-function localVocabReply(language: Language, wish: string, taken: Set<string>, prior = ''): TutorReply {
-  const file = localVocabDraft(language, wish, taken, prior)
+function localVocabReply(language: Language, wish: string, taken: Set<string>, prior = '', hasRef = false): TutorReply {
+  const file = localVocabDraft(language, wish, taken, prior, hasRef)
   if (!file) return { text: 'Напишите тему, например «словарь про еду».' }
   return {
     text: `${vocabPreface('', file.title)}\n\n${vocabTableMarkdown(file)}`,
@@ -465,8 +494,9 @@ function localVocabReply(language: Language, wish: string, taken: Set<string>, p
 
 export async function makeVocabReply(language: Language, messages: ChatMessage[]): Promise<TutorReply> {
   const last = messages.at(-1)?.content.trim() ?? ''
-  const prior = previousAssistantContent(messages)
-  const referential = isReferentialVocabWish(last)
+  const prior = contextForVocab(messages)
+  const hasRef = Boolean(messages.at(-1)?.refIds?.length || messages.at(-1)?.refSnippet)
+  const referential = (isReferentialVocabWish(last) || hasRef) && !isExplicitVocabTheme(last)
   let files: WordFile[] = []
   try {
     files = await libraryFor(language)
@@ -474,7 +504,7 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
     files = []
   }
   const taken = takenTermKeys(files, messages)
-  if (!hasGemini()) return localVocabReply(language, last, taken, prior)
+  if (!hasGemini()) return localVocabReply(language, last, taken, prior, hasRef)
 
   const known = knownTermsLine(files, messages, 40, last)
   const system = buildVocabSystem(language, known, taken.size, referential)
@@ -484,6 +514,7 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
       text: message.content,
     })),
     referential,
+    prior,
   )
 
   try {
@@ -504,5 +535,5 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
   } catch {
     /* local pack */
   }
-  return localVocabReply(language, last, taken, prior)
+  return localVocabReply(language, last, taken, prior, hasRef)
 }

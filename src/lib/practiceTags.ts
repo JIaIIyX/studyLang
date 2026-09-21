@@ -538,6 +538,27 @@ export function limitExamples(text: string, max = 1) {
     .trim()
 }
 
+export function demoteNonQuizButtons(text: string) {
+  const source = asMarkup(text)
+  if (extractQuizAnswers(source).length) return source
+  let n = 0
+  const next = source.replace(/<(btn|opt)>([\s\S]*?)<\/\1>/gi, (_, __kind: string, inner: string) => {
+    const value = cleanTagText(inner)
+    if (!value) return ''
+    n += 1
+    return `${n}. ${value}`
+  })
+  return n ? next.replace(/\n{3,}/g, '\n\n').trim() : source
+}
+
+export function stripQuizMarkup(text: string) {
+  const source = asMarkup(text)
+  return stripLooseTags(source.replace(/<(btn|opt|answer)>[\s\S]*?<\/\1>/gi, ' '))
+    .replace(/[^\S\n]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export function sealDanglingPrompt(text: string, language: 'fr' | 'de' | 'en') {
   const trimmed = asMarkup(text)
   if (!/\*{0,2}\s*(твоя задача|ваше задание|задание такое)\s*\*{0,2}\s*:?\s*\*{0,2}\s*$/i.test(trimmed)) return trimmed

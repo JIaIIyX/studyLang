@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Bookmark, Gamepad2, MessagesSquare, RotateCcw, X } from 'lucide-react'
 import { ChatComposer, type ChatComposerHandle } from '../components/chat/ChatComposer'
-import { MessageAnchor } from '../components/chat/MessageAnchor'
+import { MessageAnchor, Quotable } from '../components/chat/MessageAnchor'
 import { UserMessageActions } from '../components/chat/UserMessageActions'
 import { GAME_LINKS } from '../components/layout/GamesLabel'
 import { LookupText, WordLookupProvider } from '../components/WordLookup'
@@ -194,19 +194,35 @@ export function ChatPage() {
 
     const history = chats.find((item) => item.id === id)?.messages ?? chat?.messages ?? []
     const thread = history.filter((item) => !isPartnerMessage(item))
-    const bound = bindQuizAnswer(content, thread)
+    const bound = bindQuizAnswer(content, thread, { skip: refs.length > 0 })
     const refIds = [...new Set([...refs, ...bound.refIds])].filter(
       (item) => history.some((message) => message.id === item) || chat?.messages.some((message) => message.id === item),
     )
     const posted = bound.content
+    const refSnippet = refIds
+      .map((item) => {
+        const target = history.find((message) => message.id === item) ?? chat?.messages.find((message) => message.id === item)
+        return target ? previewMessage(target.content, 80) : ''
+      })
+      .filter(Boolean)
+      .join(' · ')
     const nextHistory: ChatMessage[] = [
       ...history,
-      { id: 'tmp', role: 'user', content: posted, createdAt: Date.now(), refIds: refIds.length ? refIds : undefined, channel: 'tutor' },
+      {
+        id: 'tmp',
+        role: 'user',
+        content: posted,
+        createdAt: Date.now(),
+        refIds: refIds.length ? refIds : undefined,
+        refSnippet: refSnippet || undefined,
+        channel: 'tutor',
+      },
     ]
     const user = appendMessage(id, {
       role: 'user',
       content: posted,
       refIds: refIds.length ? refIds : undefined,
+      refSnippet: refSnippet || undefined,
       channel: 'tutor',
     })
     setSendError('')
@@ -413,15 +429,15 @@ export function ChatPage() {
 
   return (
     <WordLookupProvider language={language} collection={scene.sphere.trim() || chat?.title || 'Диалог'}>
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!chat || tutorMessages.length === 0 ? (
-          <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-4 pb-8 pt-6">
-            <div className="rise-in mb-10">
+            <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-3 pb-8 pt-4 sm:px-4 sm:pt-6">
+            <div className="rise-in mb-8 sm:mb-10">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-terracotta">
                 {meta.native} · мастерская
               </p>
-              <h1 className="font-display mt-2 text-5xl italic leading-none md:text-6xl">
+              <h1 className="font-display mt-2 text-[2.35rem] italic leading-[1.05] sm:text-5xl md:text-6xl">
                 {meta.greet}, {displayName}.
               </h1>
               <p className="mt-4 max-w-md text-muted">
@@ -471,17 +487,22 @@ export function ChatPage() {
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
+          <div className="mx-auto max-w-3xl space-y-4 overflow-x-hidden px-3 py-4 sm:space-y-5 sm:px-4 sm:py-6">
             {tutorMessages.map((message, index) =>
               message.role === 'assistant' ? (
-                <article key={message.id} id={messageAnchor(message.id)} className="rise-in flex gap-3">
+                <Quotable
+                  key={message.id}
+                  id={messageAnchor(message.id)}
+                  onAttach={() => toggleAttach(message.id)}
+                  className="rise-in flex gap-2 sm:gap-3"
+                >
                   <Mark className="mt-1 h-8 w-8 shrink-0" />
-                  <div className={`min-w-0 flex-1 rounded-2xl border px-5 py-4 ${
+                  <div className={`min-w-0 flex-1 rounded-2xl border px-3.5 py-3 sm:px-5 sm:py-4 ${
                     attachedIds.includes(message.id) ? 'border-terracotta/50 bg-surface' : 'border-line bg-surface'
                   }`}>
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
-                        {extractQuizAnswer(message.content) || extractQuizChoices(message.content).length >= 2
+                        {extractQuizAnswer(message.content)
                           ? `Задание ${index + 1}`
                           : 'Репетитор'}
                       </p>
@@ -498,7 +519,7 @@ export function ChatPage() {
                       }
                       pickDisabled={busy}
                       onPickAnswer={
-                        !busy && tutorMessages.at(-1)?.id === message.id
+                        !busy && tutorMessages.at(-1)?.id === message.id && extractQuizAnswer(message.content)
                           ? (choice) => void send(choice, chatId, [])
                           : undefined
                       }
@@ -529,9 +550,14 @@ export function ChatPage() {
                     ) : null}
                     {message.homeworkId ? <Suspense fallback={null}><HomeworkLabel homeworkId={message.homeworkId} /></Suspense> : null}
                   </div>
-                </article>
+                </Quotable>
               ) : (
-                <article key={message.id} id={messageAnchor(message.id)} className="rise-in flex items-end justify-end gap-1">
+                <Quotable
+                  key={message.id}
+                  id={messageAnchor(message.id)}
+                  onAttach={() => toggleAttach(message.id)}
+                  className="rise-in flex items-end justify-end gap-1"
+                >
                   <UserMessageActions
                     text={message.content}
                     n={index + 1}
@@ -540,24 +566,29 @@ export function ChatPage() {
                     onAttach={() => toggleAttach(message.id)}
                     onResend={() => void send(message.content, chatId, [])}
                   />
-                  <div className="max-w-[80%] rounded-2xl rounded-br-md bg-walnut px-4 py-3 text-[15px] leading-7 text-cream">
+                  <div className="max-w-[min(85%,22rem)] rounded-2xl rounded-br-md bg-walnut px-3.5 py-2.5 text-[15px] leading-6 text-cream sm:max-w-[80%] sm:px-4 sm:py-3 sm:leading-7">
                     {message.refIds?.length ? (
                       <div className="mb-1.5 flex flex-wrap gap-1">
                         {message.refIds.map((id) => (
                           <a
                             key={id}
                             href={`#${messageAnchor(id)}`}
-                            className="font-mono text-[11px] text-cream/55 hover:text-cream"
+                            className="inline-flex min-h-8 items-center rounded-full bg-white/10 px-2 font-mono text-[11px] text-cream/70 hover:text-cream"
                           >
-                            #{messageNo(tutorMessages, id)}
+                            ↳ #{messageNo(tutorMessages, id)}
                           </a>
                         ))}
                       </div>
                     ) : null}
+                    {message.refSnippet ? (
+                      <p className="mb-1.5 line-clamp-2 border-l-2 border-cream/30 pl-2 text-[12px] leading-4 text-cream/55">
+                        {message.refSnippet}
+                      </p>
+                    ) : null}
                     <LookupText text={message.content} />
                     <Suspense fallback={null}><PhraseTranslate text={message.content} language={language} dark /></Suspense>
                   </div>
-                </article>
+                </Quotable>
               ),
             )}
             {busy && !dialogueOpen && (
@@ -571,7 +602,7 @@ export function ChatPage() {
         )}
       </div>
 
-      <div className="px-3 pb-4 pt-2">
+      <div className="shrink-0 bg-canvas/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-sm">
         <div className="relative mx-auto max-w-3xl">
           {chat && tutorMessages.length > 0 ? (
             <Suspense fallback={null}><VirtualizationPanel
@@ -694,16 +725,16 @@ export function ChatPage() {
                   return (
                     <span
                       key={id}
-                      className="inline-flex max-w-full items-center gap-1 rounded-full bg-canvas px-2 py-1 text-[12px]"
+                      className="inline-flex max-w-full items-center gap-1 rounded-full bg-canvas py-1 pl-2 pr-1 text-[12px]"
                     >
                       <a href={`#${messageAnchor(id)}`} className="font-mono text-terracotta">
-                        #{n}
+                        ↳ #{n}
                       </a>
                       <span className="truncate text-muted">{previewMessage(target.content, 28)}</span>
                       <button
                         type="button"
                         onClick={() => toggleAttach(id)}
-                        className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-hover"
+                        className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-hover"
                         aria-label="Убрать"
                       >
                         <X className="h-3 w-3" />

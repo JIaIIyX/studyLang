@@ -45,6 +45,22 @@ export function resolveMessageRefs(messages: ChatMessage[], ids: string[]) {
   return refs
 }
 
+export function referencedContext(messages: ChatMessage[]) {
+  const last = messages.at(-1)
+  const ids = last?.refIds ?? []
+  if (ids.length) {
+    const prior = messages.filter((item) => item.id !== last?.id)
+    const refs = resolveMessageRefs(prior, ids)
+    const blob = refs
+      .map((item) => item.content.trim())
+      .filter(Boolean)
+      .join('\n\n')
+    if (blob) return blob
+    if (last?.refSnippet?.trim()) return last.refSnippet.trim()
+  }
+  return ''
+}
+
 export function formatRefBlock(messages: ChatMessage[], refs: ChatMessage[]) {
   if (!refs.length) return ''
   return [

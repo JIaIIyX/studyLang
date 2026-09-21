@@ -1,4 +1,5 @@
 import { fold } from './normalize'
+import { referencedContext } from './messageRef'
 import { termKey, uniqueVocab, vocabTitleFromWish } from './tutorFile'
 import type { ChatMessage, Language, VocabDraft, VocabDraftEntry } from '../types'
 
@@ -63,10 +64,11 @@ export function isReferentialVocabWish(text: string) {
   if (!value) return false
   return (
     /(?:эт(?:и|их|о)|те|these|those)\s+(?:слов|фраз|word|phrase)/i.test(value) ||
-    /из\s+(?:примера|твоего(?:\s+сообщения)?|предыдущ)/i.test(value) ||
+    /из\s+(?:примера|твоего(?:\s+сообщения)?|предыдущ|этого|этой)/i.test(value) ||
     /которые\s+выше/i.test(value) ||
     /из\s+твоего\s+сообщения/i.test(value) ||
-    /(?:above|from\s+(?:your|the)\s+(?:message|example|list))/i.test(value)
+    /прикрепл[её]нн/i.test(value) ||
+    /(?:above|from\s+(?:your|the|this|that)\s+(?:message|example|list))/i.test(value)
   )
 }
 
@@ -84,6 +86,10 @@ export function previousAssistantContent(messages: ChatMessage[]) {
     if (item?.role === 'assistant' && item.content.trim()) return item.content
   }
   return ''
+}
+
+export function contextForVocab(messages: ChatMessage[]) {
+  return referencedContext(messages) || previousAssistantContent(messages)
 }
 
 function unwrapPart(value: string) {
@@ -217,8 +223,9 @@ export function localVocabDraft(
   wish: string,
   taken: Set<string> = new Set(),
   prior = '',
+  hasRef = false,
 ): VocabDraft | null {
-  if (isReferentialVocabWish(wish) && !isExplicitVocabTheme(wish)) {
+  if ((isReferentialVocabWish(wish) || hasRef) && !isExplicitVocabTheme(wish)) {
     return vocabDraftFromContext(prior, taken)
   }
 

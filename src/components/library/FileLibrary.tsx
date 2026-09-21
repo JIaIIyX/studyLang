@@ -32,10 +32,10 @@ export function FileLibrary({ kind, title, subtitle }: Props) {
   )
 
   return (
-    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-4 pb-16 pt-2 md:px-8">
+    <div className="mx-auto h-full max-w-5xl overflow-x-hidden overflow-y-auto px-3 pb-[max(4rem,env(safe-area-inset-bottom))] pt-2 md:px-8">
       <div className="mb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-terracotta">выберите файл</p>
-        <h1 className="font-display mt-1 text-4xl italic">{title}</h1>
+        <h1 className="font-display mt-1 text-3xl italic md:text-4xl">{title}</h1>
         <p className="mt-2 max-w-xl text-muted">{subtitle}</p>
       </div>
 
@@ -63,7 +63,7 @@ export function FileLibrary({ kind, title, subtitle }: Props) {
               <Link
                 key={item.id}
                 to={`/${kind}/${item.id}`}
-                className="flex h-full flex-col rounded-2xl border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-terracotta/35"
+                className="flex h-full min-h-[44px] flex-col rounded-2xl border border-line bg-surface p-4 transition hover:-translate-y-0.5 hover:border-terracotta/35 sm:p-5"
               >
                 <div className="mb-1 flex items-start justify-between gap-3">
                   <div>

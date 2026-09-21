@@ -130,7 +130,7 @@ function Marks({ text }: { text: string }) {
 }
 
 function chipClass(block?: boolean) {
-  return `${block ? 'block w-full' : 'mx-0.5 inline-flex align-middle'} rounded-2xl border px-3.5 py-2 text-left text-[15px] leading-6 transition`
+  return `${block ? 'block w-full' : 'mx-0.5 inline-flex align-middle'} min-h-11 rounded-2xl border px-3.5 py-2.5 text-left text-[15px] leading-6 break-words transition`
 }
 
 function isPicked(picked: string[], text: string) {
@@ -248,8 +248,8 @@ function Inline({
 
 function ChatTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line">
-      <table className="w-full min-w-[18rem] border-collapse text-left">
+            <div className="overflow-x-auto rounded-2xl border border-line">
+      <table className="w-full min-w-0 sm:min-w-[18rem] border-collapse text-left">
         <thead>
           <tr className="bg-canvas">
             {headers.map((header, index) => (
@@ -359,7 +359,7 @@ function ChoiceButtons({
             type="button"
             disabled={disabled || !onToggle}
             onClick={() => onToggle?.(choice)}
-            className={`rounded-2xl border px-3.5 py-2.5 text-left text-[15px] leading-6 transition ${
+            className={`min-h-11 rounded-2xl border px-3.5 py-2.5 text-left text-[15px] leading-6 break-words transition ${
               selected
                 ? 'border-terracotta bg-terracotta/15 text-ink'
                 : onToggle && !disabled
@@ -462,7 +462,7 @@ export function RichText({
             type="button"
             disabled={!draft.length}
             onClick={() => onPickAnswer?.(draft.join(' | '))}
-            className="rounded-full bg-walnut px-4 py-1.5 text-sm font-medium text-cream enabled:hover:brightness-110 disabled:opacity-30"
+            className="min-h-11 rounded-full bg-walnut px-4 py-2 text-sm font-medium text-cream enabled:hover:brightness-110 disabled:opacity-30"
           >
             Ответить{draft.length > 1 ? ` · ${draft.length}` : ''}
           </button>

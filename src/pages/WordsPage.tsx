@@ -107,11 +107,11 @@ export function WordsPage() {
   }
 
   return (
-    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-4 pb-16 pt-2 md:px-8">
+    <div className="mx-auto h-full max-w-5xl overflow-x-hidden overflow-y-auto px-3 pb-[max(4rem,env(safe-area-inset-bottom))] pt-2 md:px-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-terracotta">полка</p>
-          <h1 className="font-display mt-1 text-4xl italic">Слова</h1>
+          <h1 className="font-display mt-1 text-3xl italic md:text-4xl">Слова</h1>
           <p className="mt-2 max-w-xl text-muted">
             Возьмите карточку за шесть точек и перетащите в группу. В играх полка будет той же.
           </p>

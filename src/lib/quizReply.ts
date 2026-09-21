@@ -73,7 +73,7 @@ export function picksFromChoices(raw: string, choices: string[]) {
 }
 
 function isQuizMessage(text: string) {
-  return Boolean(extractQuizAnswer(text)) || extractQuizChoices(text).length >= 2
+  return Boolean(extractQuizAnswer(text))
 }
 
 
@@ -82,16 +82,21 @@ function stripBoundAnswerPrefix(text: string) {
   return match ? match[1].trim() : text.trim()
 }
 
-export function bindQuizAnswer(raw: string, messages: ChatMessage[]) {
+export function bindQuizAnswer(raw: string, messages: ChatMessage[], options?: { skip?: boolean }) {
   const value = raw.trim()
   const payload = stripBoundAnswerPrefix(value)
-  if (!value || looksLikeQuizRequest(value) || looksLikeQuizRequest(payload)) return { content: value, refIds: [] as string[] }
+  if (options?.skip || !value || looksLikeQuizRequest(value) || looksLikeQuizRequest(payload)) {
+    return { content: value, refIds: [] as string[] }
+  }
   const quiz = [...messages].reverse().find((item) => item.role === 'assistant' && isQuizMessage(item.content))
   if (!quiz) return { content: value, refIds: [] as string[] }
   const choices = extractQuizChoices(quiz.content)
   if (looksLikeLeavingQuiz(value, choices) || looksLikeLeavingQuiz(payload, choices)) return { content: value, refIds: [] as string[] }
   const n = messageNo(messages, quiz.id)
-  if (parseTaskAnswer(value)) return { content: value, refIds: [quiz.id] }
+  if (parseTaskAnswer(value)) {
+    if (!extractQuizAnswer(quiz.content)) return { content: value, refIds: [] as string[] }
+    return { content: value, refIds: [quiz.id] }
+  }
   const write = Boolean(extractQuizAnswer(quiz.content)) && choices.length < 2
   if (choices.length >= 2) {
     const picks = picksFromChoices(value, choices)

@@ -1,11 +1,13 @@
 import { compactVocabHistory } from './llmTasks'
 import {
+  contextForVocab,
   extractVocabEntriesFromText,
   groundVocabInContext,
   isExplicitVocabTheme,
   isReferentialVocabWish,
   localVocabDraft,
 } from './vocabFromContext'
+import type { ChatMessage } from '../types'
 
 function check(name: string, condition: boolean) {
   if (!condition) throw new Error(`fail: ${name}`)
@@ -112,6 +114,40 @@ check('history keeps quoted phrases', /wie geht es dir/i.test(blob) && /ich hei�
 
 const themed = compactVocabHistory([{ role: 'user', text: 'слова про еду' }], false)
 check('theme history is only the wish', themed.length === 1 && themed[0]?.role === 'user' && themed[0].text === 'слова про еду')
+
+const greetings: ChatMessage = {
+  id: 'greet',
+  role: 'assistant',
+  content: prior,
+  createdAt: 1,
+}
+const laterFood: ChatMessage = {
+  id: 'food',
+  role: 'assistant',
+  content: '- **Käse** — сыр\n- **Milch** — молоко',
+  createdAt: 2,
+}
+const withRef: ChatMessage = {
+  id: 'ask',
+  role: 'user',
+  content: 'Можешь добавить в словарь эти слова?',
+  createdAt: 3,
+  refIds: ['greet'],
+  refSnippet: 'Guten Tag / Wie geht es dir',
+}
+const refContext = contextForVocab([greetings, laterFood, withRef])
+check('explicit ref ignores later-unrelated food', /guten tag/i.test(refContext) && !/käse/i.test(refContext))
+const refDraft = localVocabDraft('de', withRef.content, new Set(), refContext, true)
+check(
+  'explicit message ref uses greetings',
+  Boolean(
+    refDraft &&
+      refDraft.entries.some((entry) => /guten tag/i.test(entry.term)) &&
+      !refDraft.entries.some((entry) => /käse|milch/i.test(entry.term)),
+  ),
+)
+const focused = compactVocabHistory([{ role: 'user', text: 'добавь из этого' }], true, prior)
+check('focused history injects referenced phrases', focused.some((item) => /guten tag/i.test(item.text)))
 
 console.log('all vocabFromContext tests passed')
 

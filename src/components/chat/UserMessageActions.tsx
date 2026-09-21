@@ -21,8 +21,8 @@ export function UserMessageActions({
 }) {
   const [copied, setCopied] = useState(false)
   const tone = dark
-    ? 'flex h-7 w-7 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white disabled:opacity-30'
-    : 'flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-ink disabled:opacity-30'
+    ? 'flex h-11 w-11 items-center justify-center rounded-lg text-white/45 hover:bg-white/10 hover:text-white disabled:opacity-30'
+    : 'flex h-11 w-11 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-ink disabled:opacity-30'
 
   const copy = async () => {
     try {
