@@ -5,6 +5,7 @@ import { languageMeta, sectionMeta } from './languages'
 import {
   classifyTutorTask,
   compactHistory,
+  compactVocabHistory,
   extractAskedPhrase,
   isSimpleSay,
   lessonFromThread,
@@ -18,6 +19,12 @@ import {
   LLM_BUDGET,
   buildQuizWish,
 } from './llmTasks'
+import {
+  groundVocabInContext,
+  isReferentialVocabWish,
+  localVocabDraft,
+  previousAssistantContent,
+} from './vocabFromContext'
 import { recordQuizResult, skillQuizWish, skillTutorLine } from './skills'
 import { gradeLastQuiz, gradeLocalQuiz, improviseQuiz, lastQuizMessage, makeLocalQuiz } from './tutorQuiz'
 import { catalogFromMessages } from './quizCatalog'
@@ -27,11 +34,9 @@ import {
   knownTermsLine,
   parseTutorPayload,
   takenTermKeys,
-  termKey,
   uniqueVocab,
   vocabPreface,
   vocabTableMarkdown,
-  vocabTitleFromWish,
 } from './tutorFile'
 import type { ChatMessage, FileProgress, Language, VocabDraft, WordEntry, WordFile } from '../types'
 
@@ -166,7 +171,8 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
 
   const lower = last.toLowerCase()
   if (wantsVocabList(messages)) {
-    const fallback = localVocabDraft(language, last)
+    const prior = previous?.role === 'assistant' ? previous.content : ''
+    const fallback = localVocabDraft(language, last, new Set(), prior)
     return fallback ? vocabPreface('', fallback.title) : 'Напишите тему, например «словарь про еду».'
   }
   if (/таблиц/i.test(lower)) {
@@ -448,85 +454,8 @@ export async function replyAsTutor(
   }
 }
 
-type VocabPair = [string, string]
-
-const VOCAB_PACKS: { keys: RegExp; title: string; en: VocabPair[]; fr: VocabPair[]; de: VocabPair[] }[] = [
-  {
-    keys: /еда|food|продукт|овощ|фрукт|кухн/,
-    title: 'Еда',
-    en: [['apple', 'яблоко'], ['bread', 'хлеб'], ['cheese', 'сыр'], ['milk', 'молоко'], ['potato', 'картофель'], ['rice', 'рис'], ['butter', 'масло'], ['chicken', 'курица']],
-    fr: [['pomme', 'яблоко'], ['pain', 'хлеб'], ['fromage', 'сыр'], ['lait', 'молоко'], ['pomme de terre', 'картофель'], ['riz', 'рис'], ['beurre', 'масло'], ['poulet', 'курица']],
-    de: [['Apfel', 'яблоко'], ['Brot', 'хлеб'], ['Käse', 'сыр'], ['Milch', 'молоко'], ['Kartoffel', 'картофель'], ['Reis', 'рис'], ['Butter', 'масло'], ['Hähnchen', 'курица']],
-  },
-  {
-    keys: /кафе|кофе|cafe|ресторан|меню|официант/,
-    title: 'Кафе',
-    en: [['coffee', 'кофе'], ['tea', 'чай'], ['menu', 'меню'], ['bill', 'счёт'], ['table', 'столик'], ['water', 'вода'], ['cake', 'торт'], ['please', 'пожалуйста']],
-    fr: [['café', 'кофе'], ['thé', 'чай'], ['menu', 'меню'], ['addition', 'счёт'], ['table', 'столик'], ['eau', 'вода'], ['gâteau', 'торт'], ['s’il vous plaît', 'пожалуйста']],
-    de: [['Kaffee', 'кофе'], ['Tee', 'чай'], ['Speisekarte', 'меню'], ['Rechnung', 'счёт'], ['Tisch', 'столик'], ['Wasser', 'вода'], ['Kuchen', 'торт'], ['bitte', 'пожалуйста']],
-  },
-  {
-    keys: /магазин|shop|store|покуп|одежд|цена/,
-    title: 'Магазин',
-    en: [['shop', 'магазин'], ['price', 'цена'], ['size', 'размер'], ['bag', 'пакет'], ['cash', 'наличные'], ['card', 'карта'], ['cheap', 'дешёвый'], ['receipt', 'чек']],
-    fr: [['magasin', 'магазин'], ['prix', 'цена'], ['taille', 'размер'], ['sac', 'пакет'], ['espèces', 'наличные'], ['carte', 'карта'], ['pas cher', 'дешёвый'], ['ticket', 'чек']],
-    de: [['Laden', 'магазин'], ['Preis', 'цена'], ['Größe', 'размер'], ['Tüte', 'пакет'], ['Bargeld', 'наличные'], ['Karte', 'карта'], ['günstig', 'дешёвый'], ['Beleg', 'чек']],
-  },
-  {
-    keys: /аэропорт|airport|путешеств|поездк|билет|самолёт|plane/,
-    title: 'Путешествие',
-    en: [['airport', 'аэропорт'], ['ticket', 'билет'], ['passport', 'паспорт'], ['flight', 'рейс'], ['luggage', 'багаж'], ['gate', 'выход'], ['delay', 'задержка'], ['seat', 'место']],
-    fr: [['aéroport', 'аэропорт'], ['billet', 'билет'], ['passeport', 'паспорт'], ['vol', 'рейс'], ['bagages', 'багаж'], ['porte', 'выход'], ['retard', 'задержка'], ['siège', 'место']],
-    de: [['Flughafen', 'аэропорт'], ['Ticket', 'билет'], ['Reisepass', 'паспорт'], ['Flug', 'рейс'], ['Gepäck', 'багаж'], ['Gate', 'выход'], ['Verspätung', 'задержка'], ['Sitz', 'место']],
-  },
-  {
-    keys: /дом|home|квартир|комнат|мебел/,
-    title: 'Дом',
-    en: [['house', 'дом'], ['room', 'комната'], ['kitchen', 'кухня'], ['window', 'окно'], ['door', 'дверь'], ['bed', 'кровать'], ['chair', 'стул'], ['key', 'ключ']],
-    fr: [['maison', 'дом'], ['chambre', 'комната'], ['cuisine', 'кухня'], ['fenêtre', 'окно'], ['porte', 'дверь'], ['lit', 'кровать'], ['chaise', 'стул'], ['clé', 'ключ']],
-    de: [['Haus', 'дом'], ['Zimmer', 'комната'], ['Küche', 'кухня'], ['Fenster', 'окно'], ['Tür', 'дверь'], ['Bett', 'кровать'], ['Stuhl', 'стул'], ['Schlüssel', 'ключ']],
-  },
-  {
-    keys: /работ|job|office|собесед/,
-    title: 'Работа',
-    en: [['job', 'работа'], ['office', 'офис'], ['meeting', 'встреча'], ['boss', 'начальник'], ['salary', 'зарплата'], ['email', 'письмо'], ['deadline', 'срок'], ['team', 'команда']],
-    fr: [['travail', 'работа'], ['bureau', 'офис'], ['réunion', 'встреча'], ['patron', 'начальник'], ['salaire', 'зарплата'], ['e-mail', 'письмо'], ['délai', 'срок'], ['équipe', 'команда']],
-    de: [['Arbeit', 'работа'], ['Büro', 'офис'], ['Besprechung', 'встреча'], ['Chef', 'начальник'], ['Gehalt', 'зарплата'], ['E-Mail', 'письмо'], ['Frist', 'срок'], ['Team', 'команда']],
-  },
-  {
-    keys: /врач|health|здоров|больн|симптом/,
-    title: 'Здоровье',
-    en: [['doctor', 'врач'], ['pain', 'боль'], ['headache', 'головная боль'], ['fever', 'температура'], ['pill', 'таблетка'], ['cough', 'кашель'], ['appointment', 'приём'], ['pharmacy', 'аптека']],
-    fr: [['médecin', 'врач'], ['douleur', 'боль'], ['mal de tête', 'головная боль'], ['fièvre', 'температура'], ['comprimé', 'таблетка'], ['toux', 'кашель'], ['rendez-vous', 'приём'], ['pharmacie', 'аптека']],
-    de: [['Arzt', 'врач'], ['Schmerz', 'боль'], ['Kopfschmerzen', 'головная боль'], ['Fieber', 'температура'], ['Tablette', 'таблетка'], ['Husten', 'кашель'], ['Termin', 'приём'], ['Apotheke', 'аптека']],
-  },
-]
-
-function localVocabDraft(language: Language, wish: string, taken: Set<string> = new Set()): VocabDraft | null {
-  const title = vocabTitleFromWish(wish)
-  const pack = VOCAB_PACKS.find((item) => item.keys.test(wish))
-  const preferred = pack?.[language] ?? pack?.en ?? []
-  const rest = VOCAB_PACKS.flatMap((item) => (item === pack ? [] : item[language] ?? item.en))
-  const entries: VocabDraft['entries'] = []
-  const seen = new Set(taken)
-  for (const [term, translation] of [...preferred, ...rest]) {
-    const key = termKey(term)
-    if (!key || seen.has(key)) continue
-    seen.add(key)
-    entries.push({ term, translation })
-    if (entries.length >= 8) break
-  }
-  if (entries.length < 4) return null
-  return {
-    title: title || pack?.title || 'Словарь',
-    kind: 'words',
-    description: 'Набор от репетитора',
-    entries,
-  }
-}
-
-function localVocabReply(language: Language, wish: string, taken: Set<string>): TutorReply {
-  const file = localVocabDraft(language, wish, taken)
+function localVocabReply(language: Language, wish: string, taken: Set<string>, prior = ''): TutorReply {
+  const file = localVocabDraft(language, wish, taken, prior)
   if (!file) return { text: 'Напишите тему, например «словарь про еду».' }
   return {
     text: `${vocabPreface('', file.title)}\n\n${vocabTableMarkdown(file)}`,
@@ -536,6 +465,8 @@ function localVocabReply(language: Language, wish: string, taken: Set<string>): 
 
 export async function makeVocabReply(language: Language, messages: ChatMessage[]): Promise<TutorReply> {
   const last = messages.at(-1)?.content.trim() ?? ''
+  const prior = previousAssistantContent(messages)
+  const referential = isReferentialVocabWish(last)
   let files: WordFile[] = []
   try {
     files = await libraryFor(language)
@@ -543,11 +474,17 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
     files = []
   }
   const taken = takenTermKeys(files, messages)
-  if (!hasGemini()) return localVocabReply(language, last, taken)
+  if (!hasGemini()) return localVocabReply(language, last, taken, prior)
 
   const known = knownTermsLine(files, messages, 40, last)
-  const system = buildVocabSystem(language, known, taken.size)
-  const history = compactHistory([{ role: 'user', text: last }], 'vocab')
+  const system = buildVocabSystem(language, known, taken.size, referential)
+  const history = compactVocabHistory(
+    messages.map((message) => ({
+      role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
+      text: message.content,
+    })),
+    referential,
+  )
 
   try {
     const raw = await askGemini(system, history, {
@@ -555,8 +492,10 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
       timeoutMs: LLM_BUDGET.vocab.timeoutMs,
     })
     const parsed = parseTutorPayload(raw)
-    const file = parsed.file ? uniqueVocab(parsed.file, taken) : null
-    if (file && file.entries.length >= 4) {
+    let file = parsed.file ? uniqueVocab(parsed.file, taken) : null
+    if (referential && prior) file = groundVocabInContext(file, prior, taken)
+    const minEntries = referential ? 2 : 4
+    if (file && file.entries.length >= minEntries) {
       return {
         text: `${vocabPreface(parsed.reply, file.title)}\n\n${vocabTableMarkdown(file)}`,
         file,
@@ -565,5 +504,5 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
   } catch {
     /* local pack */
   }
-  return localVocabReply(language, last, taken)
+  return localVocabReply(language, last, taken, prior)
 }

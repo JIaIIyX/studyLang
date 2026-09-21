@@ -12,7 +12,7 @@ export const LLM_BUDGET: Record<LlmTask, { turns: number; maxChars: number; maxT
   quiz: { turns: 8, maxChars: 420, maxTokens: 600, timeoutMs: 35_000 },
   grade: { turns: 8, maxChars: 420, maxTokens: 600, timeoutMs: 35_000 },
   general: { turns: 10, maxChars: 640, maxTokens: 800, timeoutMs: 35_000 },
-  vocab: { turns: 1, maxChars: 280, maxTokens: 700, timeoutMs: 35_000 },
+  vocab: { turns: 6, maxChars: 280, maxTokens: 700, timeoutMs: 35_000 },
   partner: { turns: 16, maxChars: 480, maxTokens: 1400, timeoutMs: 40_000 },
   homework: { turns: 1, maxChars: 800, maxTokens: 900, timeoutMs: 40_000 },
   advice: { turns: 1, maxChars: 1000, maxTokens: 900, timeoutMs: 40_000 },
@@ -53,6 +53,48 @@ export function compactHistory(
   const lastUser = [...messages].reverse().find((item) => item.role === 'user' && item.text.trim())
   if (!lastUser) return ready
   return [...ready, { role: 'user' as const, text: shrinkTurn(lastUser.text, maxChars) || lastUser.text.trim().slice(0, maxChars) }]
+}
+
+function clipVocabTurn(text: string, maxChars: number) {
+  const cleaned = toCompactMarkup(text)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  if (cleaned.length <= maxChars) return cleaned
+  const listed = cleaned
+    .split('\n')
+    .filter((line) =>
+      /^\s*\|/.test(line) ||
+      /^\s*[-*•]/.test(line) ||
+      /^\s*\d+[.)]/.test(line) ||
+      /[„«"“].+[—–−\-]/.test(line) ||
+      /\{\{/.test(line) ||
+      /<ex>/i.test(line),
+    )
+    .join('\n')
+    .trim()
+  if (listed && listed.length <= maxChars) return listed
+  if (listed.length > maxChars) return `${listed.slice(0, maxChars).trim()}…`
+  return `${cleaned.slice(0, maxChars).trim()}…`
+}
+
+export function compactVocabHistory(
+  messages: { role: 'user' | 'model'; text: string }[],
+  referential: boolean,
+) {
+  const last = messages.at(-1)
+  if (!referential) return compactHistory([{ role: 'user', text: last?.text ?? '' }], 'vocab')
+  const userCap = LLM_BUDGET.vocab.maxChars
+  const ready = messages
+    .filter((item) => item.text.trim())
+    .slice(-LLM_BUDGET.vocab.turns)
+    .map((item) => {
+      const cap = item.role === 'model' ? 1400 : userCap
+      return { role: item.role, text: clipVocabTurn(item.text, cap) }
+    })
+    .filter((item) => item.text)
+  if (ready.some((item) => item.role === 'user')) return ready
+  if (!last?.text.trim()) return ready
+  return [...ready, { role: 'user' as const, text: clipVocabTurn(last.text, userCap) }]
 }
 
 export function tutorTurns(messages: ChatMessage[]) {
@@ -396,19 +438,31 @@ export function buildTutorSystem(
   return lines.filter(Boolean).join('\n')
 }
 
-export function buildVocabSystem(language: Language, known: string, shelfCount: number) {
+export function buildVocabSystem(language: Language, known: string, shelfCount: number, referential = false) {
   const practice = languageMeta(language).native
   const code = String(language).toUpperCase()
-  return [
-    `You build ONE ${practice} vocabulary deck for flashcards.`,
-    'Stay strictly on the user topic (cafe → only cafe words). No random grammar forms (no Klein/Kleiner/Kleines as entries), no conjugations-as-entries, no filler.',
-    'Title: short concrete Russian topic name (e.g. «Кафе»), never bare «Словарь».',
-    'Count: if the user asks for N words, output exactly N pairs; otherwise 6–8. Never pad with off-topic words.',
+  const lines = [`You build ONE ${practice} vocabulary deck for flashcards.`]
+  if (referential) {
+    lines.push(
+      'The user refers to words or phrases ALREADY shown in this thread (previous assistant message).',
+      'Extract ONLY those terms and their translations. Do NOT invent a new theme or unrelated vocabulary (no food/travel/home filler unless those were the shown words).',
+      'Title must reflect the source (e.g. «Стартовые фразы», «Приветствия»), never a random unused topic like «Еда».',
+      'Output exactly the listed items, even if there are only 2–3 pairs. Never pad to 6–8.',
+    )
+  } else {
+    lines.push(
+      'Stay strictly on the user topic (cafe → only cafe words). No random grammar forms (no Klein/Kleiner/Kleines as entries), no conjugations-as-entries, no filler.',
+      'Title: short concrete Russian topic name (e.g. «Кафе»), never bare «Словарь».',
+      'Count: if the user asks for N words, output exactly N pairs; otherwise 6–8. Never pad with off-topic words.',
+    )
+  }
+  lines.push(
     shelfCount
       ? `Shelf already has ${shelfCount} words. Do not reuse${known ? `: ${known}` : '.'}`
       : 'Shelf is empty.',
     `Format in Russian: one short sentence, then a markdown table | ${code} | RU | with term/translation pairs only. No quiz, no JSON, no extra columns.`,
-  ].join('\n')
+  )
+  return lines.join('\n')
 }
 
 export function tutorAskOptions(task: TutorTask) {
