@@ -505,6 +505,10 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
     files = []
   }
   const taken = referential ? draftTermKeys(messages) : takenTermKeys(files, messages)
+  if (referential) {
+    const extracted = localVocabDraft(language, last, taken, prior, hasRef)
+    if (extracted && extracted.entries.length >= 2) return localVocabReply(language, last, taken, prior, hasRef)
+  }
   if (!hasGemini()) return localVocabReply(language, last, taken, prior, hasRef)
 
   const known = knownTermsLine(files, messages, 40, last)
