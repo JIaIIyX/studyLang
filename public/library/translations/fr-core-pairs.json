@@ -1,0 +1,22 @@
+{
+  "id": "fr-core-pairs",
+  "title": "Базовый словарь",
+  "language": "fr",
+  "level": "A1",
+  "kind": "translations",
+  "description": "FR ↔ RU на скорость",
+  "entries": [
+    { "id": "bonjour", "term": "bonjour", "translation": "привет / добрый день" },
+    { "id": "merci", "term": "merci", "translation": "спасибо" },
+    { "id": "s-il-vous-plait", "term": "s'il vous plaît", "translation": "пожалуйста" },
+    { "id": "eau", "term": "l'eau", "translation": "вода" },
+    { "id": "pain", "term": "le pain", "translation": "хлеб" },
+    { "id": "maison", "term": "la maison", "translation": "дом" },
+    { "id": "ville", "term": "la ville", "translation": "город" },
+    { "id": "ami", "term": "un ami", "translation": "друг" },
+    { "id": "aujourd-hui", "term": "aujourd'hui", "translation": "сегодня" },
+    { "id": "demain", "term": "demain", "translation": "завтра" },
+    { "id": "gare", "term": "la gare", "translation": "вокзал" },
+    { "id": "parler", "term": "parler", "translation": "говорить" }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "id": "de-a1-articles",
+  "title": "der / die / das",
+  "language": "de",
+  "level": "A1",
+  "kind": "cards",
+  "description": "Существительные с родом",
+  "entries": [
+    {
+      "id": "mann",
+      "term": "der Mann",
+      "translation": "мужчина",
+      "ipa": "deːɐ̯ man",
+      "pos": "существительное",
+      "example": "Der Mann liest eine Zeitung.",
+      "exampleTranslation": "Мужчина читает газету.",
+      "hint": "мужской род"
+    },
+    {
+      "id": "frau",
+      "term": "die Frau",
+      "translation": "женщина",
+      "ipa": "diː fʁaʊ",
+      "example": "Die Frau trinkt Kaffee.",
+      "exampleTranslation": "Женщина пьёт кофе.",
+      "hint": "женский род"
+    },
+    {
+      "id": "kind",
+      "term": "das Kind",
+      "translation": "ребёнок",
+      "ipa": "das kɪnt",
+      "example": "Das Kind spielt im Park.",
+      "exampleTranslation": "Ребёнок играет в парке.",
+      "hint": "средний род"
+    },
+    {
+      "id": "tisch",
+      "term": "der Tisch",
+      "translation": "стол",
+      "ipa": "deːɐ̯ tɪʃ",
+      "example": "Der Tisch ist aus Holz.",
+      "exampleTranslation": "Стол деревянный."
+    },
+    {
+      "id": "tuer",
+      "term": "die Tür",
+      "translation": "дверь",
+      "ipa": "diː tyːɐ̯",
+      "example": "Die Tür ist offen.",
+      "exampleTranslation": "Дверь открыта."
+    },
+    {
+      "id": "haus",
+      "term": "das Haus",
+      "translation": "дом",
+      "ipa": "das haʊs",
+      "example": "Das Haus ist alt.",
+      "exampleTranslation": "Дом старый."
+    },
+    {
+      "id": "apfel",
+      "term": "der Apfel",
+      "translation": "яблоко",
+      "ipa": "deːɐ̯ ˈap.fl̩",
+      "example": "Der Apfel ist rot.",
+      "exampleTranslation": "Яблоко красное."
+    },
+    {
+      "id": "stadt",
+      "term": "die Stadt",
+      "translation": "город",
+      "ipa": "diː ʃtat",
+      "example": "Die Stadt ist groß.",
+      "exampleTranslation": "Город большой."
+    },
+    {
+      "id": "buch",
+      "term": "das Buch",
+      "translation": "книга",
+      "ipa": "das buːx",
+      "example": "Das Buch liegt auf dem Tisch.",
+      "exampleTranslation": "Книга лежит на столе."
+    },
+    {
+      "id": "zug",
+      "term": "der Zug",
+      "translation": "поезд",
+      "ipa": "deːɐ̯ tsuːk",
+      "example": "Der Zug kommt um zehn.",
+      "exampleTranslation": "Поезд приходит в десять."
+    },
+    {
+      "id": "zeit",
+      "term": "die Zeit",
+      "translation": "время",
+      "ipa": "diː tsaɪt",
+      "example": "Ich habe keine Zeit.",
+      "exampleTranslation": "У меня нет времени."
+    },
+    {
+      "id": "wetter",
+      "term": "das Wetter",
+      "translation": "погода",
+      "ipa": "das ˈvɛ.tɐ",
+      "example": "Das Wetter ist schön.",
+      "exampleTranslation": "Погода хорошая."
+    }
+  ]
+}

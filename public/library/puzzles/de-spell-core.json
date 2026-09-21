@@ -1,0 +1,20 @@
+{
+  "id": "de-spell-core",
+  "title": "Буквы и умлауты",
+  "language": "de",
+  "level": "A1",
+  "kind": "puzzles",
+  "description": "Соберите немецкие слова по буквам",
+  "entries": [
+    { "id": "danke", "term": "Danke", "translation": "спасибо" },
+    { "id": "bitte", "term": "Bitte", "translation": "пожалуйста" },
+    { "id": "haus", "term": "Haus", "translation": "дом" },
+    { "id": "brot", "term": "Brot", "translation": "хлеб" },
+    { "id": "apfel", "term": "Apfel", "translation": "яблоко" },
+    { "id": "buch", "term": "Buch", "translation": "книга" },
+    { "id": "stadt", "term": "Stadt", "translation": "город" },
+    { "id": "schule", "term": "Schule", "translation": "школа" },
+    { "id": "kaffee", "term": "Kaffee", "translation": "кофе" },
+    { "id": "freund", "term": "Freund", "translation": "друг" }
+  ]
+}

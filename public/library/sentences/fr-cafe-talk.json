@@ -1,0 +1,58 @@
+{
+  "id": "fr-cafe-talk",
+  "title": "В кафе",
+  "language": "fr",
+  "level": "A1",
+  "kind": "sentences",
+  "description": "Фразы для заказа и счёта",
+  "entries": [
+    {
+      "id": "s1",
+      "term": "Je voudrais un café, s'il vous plaît.",
+      "translation": "Я бы хотел кофе, пожалуйста.",
+      "tokens": ["Je", "voudrais", "un", "café", ",", "s'il", "vous", "plaît", "."]
+    },
+    {
+      "id": "s2",
+      "term": "L'addition, s'il vous plaît.",
+      "translation": "Счёт, пожалуйста.",
+      "tokens": ["L'addition", ",", "s'il", "vous", "plaît", "."]
+    },
+    {
+      "id": "s3",
+      "term": "Une table pour deux, s'il vous plaît.",
+      "translation": "Столик на двоих, пожалуйста.",
+      "tokens": ["Une", "table", "pour", "deux", ",", "s'il", "vous", "plaît", "."]
+    },
+    {
+      "id": "s4",
+      "term": "Qu'est-ce que vous recommandez ?",
+      "translation": "Что вы порекомендуете?",
+      "tokens": ["Qu'est-ce", "que", "vous", "recommandez", "?"]
+    },
+    {
+      "id": "s5",
+      "term": "Je prends le menu du jour.",
+      "translation": "Я возьму меню дня.",
+      "tokens": ["Je", "prends", "le", "menu", "du", "jour", "."]
+    },
+    {
+      "id": "s6",
+      "term": "C'est délicieux, merci.",
+      "translation": "Это вкусно, спасибо.",
+      "tokens": ["C'est", "délicieux", ",", "merci", "."]
+    },
+    {
+      "id": "s7",
+      "term": "Où sont les toilettes ?",
+      "translation": "Где туалет?",
+      "tokens": ["Où", "sont", "les", "toilettes", "?"]
+    },
+    {
+      "id": "s8",
+      "term": "Nous aimerions de l'eau.",
+      "translation": "Мы хотели бы воды.",
+      "tokens": ["Nous", "aimerions", "de", "l'eau", "."]
+    }
+  ]
+}

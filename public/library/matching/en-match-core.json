@@ -1,0 +1,22 @@
+{
+  "id": "en-match-core",
+  "title": "Пары A1",
+  "language": "en",
+  "level": "A1",
+  "kind": "matching",
+  "description": "Свяжите английское слово с русским",
+  "entries": [
+    { "id": "hello", "term": "hello", "translation": "привет" },
+    { "id": "thank-you", "term": "thank you", "translation": "спасибо" },
+    { "id": "water", "term": "water", "translation": "вода" },
+    { "id": "bread", "term": "bread", "translation": "хлеб" },
+    { "id": "house", "term": "house", "translation": "дом" },
+    { "id": "city", "term": "city", "translation": "город" },
+    { "id": "friend", "term": "friend", "translation": "друг" },
+    { "id": "today", "term": "today", "translation": "сегодня" },
+    { "id": "tomorrow", "term": "tomorrow", "translation": "завтра" },
+    { "id": "station", "term": "station", "translation": "вокзал" },
+    { "id": "speak", "term": "speak", "translation": "говорить" },
+    { "id": "book", "term": "book", "translation": "книга" }
+  ]
+}

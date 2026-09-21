@@ -1,0 +1,58 @@
+{
+  "id": "en-travel-talk",
+  "title": "В поездке",
+  "language": "en",
+  "level": "A1",
+  "kind": "sentences",
+  "description": "Короткие фразы в поездке",
+  "entries": [
+    {
+      "id": "s1",
+      "term": "Excuse me, where is the station?",
+      "translation": "Извините, где станция?",
+      "tokens": ["Excuse", "me", ",", "where", "is", "the", "station", "?"]
+    },
+    {
+      "id": "s2",
+      "term": "I would like a ticket to London.",
+      "translation": "Я бы хотел билет до Лондона.",
+      "tokens": ["I", "would", "like", "a", "ticket", "to", "London", "."]
+    },
+    {
+      "id": "s3",
+      "term": "How much does this cost?",
+      "translation": "Сколько это стоит?",
+      "tokens": ["How", "much", "does", "this", "cost", "?"]
+    },
+    {
+      "id": "s4",
+      "term": "Could you speak more slowly?",
+      "translation": "Не могли бы вы говорить медленнее?",
+      "tokens": ["Could", "you", "speak", "more", "slowly", "?"]
+    },
+    {
+      "id": "s5",
+      "term": "I am looking for a hotel.",
+      "translation": "Я ищу отель.",
+      "tokens": ["I", "am", "looking", "for", "a", "hotel", "."]
+    },
+    {
+      "id": "s6",
+      "term": "The train leaves at nine.",
+      "translation": "Поезд отправляется в девять.",
+      "tokens": ["The", "train", "leaves", "at", "nine", "."]
+    },
+    {
+      "id": "s7",
+      "term": "Do you take credit cards?",
+      "translation": "Вы принимаете карты?",
+      "tokens": ["Do", "you", "take", "credit", "cards", "?"]
+    },
+    {
+      "id": "s8",
+      "term": "Thank you for your help.",
+      "translation": "Спасибо за помощь.",
+      "tokens": ["Thank", "you", "for", "your", "help", "."]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "fr-spell-core",
+  "title": "Орфография A1",
+  "language": "fr",
+  "level": "A1",
+  "kind": "puzzles",
+  "description": "Соберите короткие французские слова",
+  "entries": [
+    { "id": "merci", "term": "merci", "translation": "спасибо", "hint": "вежливость" },
+    { "id": "chat", "term": "chat", "translation": "кот", "hint": "животное" },
+    { "id": "eau", "term": "eau", "translation": "вода" },
+    { "id": "pain", "term": "pain", "translation": "хлеб" },
+    { "id": "livre", "term": "livre", "translation": "книга" },
+    { "id": "porte", "term": "porte", "translation": "дверь" },
+    { "id": "table", "term": "table", "translation": "стол" },
+    { "id": "ville", "term": "ville", "translation": "город" },
+    { "id": "fleur", "term": "fleur", "translation": "цветок" },
+    { "id": "soleil", "term": "soleil", "translation": "солнце" }
+  ]
+}

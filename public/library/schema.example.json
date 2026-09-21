@@ -1,0 +1,21 @@
+{
+  "id": "my-words",
+  "title": "Мой набор",
+  "language": "fr",
+  "level": "A1",
+  "kind": "cards",
+  "description": "Скопируйте этот файл и добавьте свои слова",
+  "entries": [
+    {
+      "id": "exemple",
+      "term": "exemple",
+      "translation": "пример",
+      "ipa": "ɛɡ.zɑ̃pl",
+      "pos": "существительное",
+      "example": "Voici un exemple.",
+      "exampleTranslation": "Вот пример.",
+      "hint": "учебное слово",
+      "tokens": ["Voici", "un", "exemple", "."]
+    }
+  ]
+}

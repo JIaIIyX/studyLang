@@ -1,0 +1,107 @@
+{
+  "id": "fr-a1-food",
+  "title": "Еда и кафе",
+  "language": "fr",
+  "level": "A1",
+  "kind": "cards",
+  "description": "Слова для заказа и меню",
+  "entries": [
+    {
+      "id": "pain",
+      "term": "le pain",
+      "translation": "хлеб",
+      "ipa": "lə pɛ̃",
+      "pos": "существительное",
+      "example": "Je voudrais du pain, s'il vous plaît.",
+      "exampleTranslation": "Я бы хотел хлеба, пожалуйста."
+    },
+    {
+      "id": "fromage",
+      "term": "le fromage",
+      "translation": "сыр",
+      "ipa": "lə fʁɔ.maʒ",
+      "example": "Le fromage est délicieux.",
+      "exampleTranslation": "Сыр восхитительный."
+    },
+    {
+      "id": "cafe",
+      "term": "le café",
+      "translation": "кофе",
+      "ipa": "lə ka.fe",
+      "example": "Un café crème, s'il vous plaît.",
+      "exampleTranslation": "Кофе с молоком, пожалуйста."
+    },
+    {
+      "id": "eau",
+      "term": "l'eau",
+      "translation": "вода",
+      "ipa": "lo",
+      "example": "Une carafe d'eau, s'il vous plaît.",
+      "exampleTranslation": "Графин воды, пожалуйста."
+    },
+    {
+      "id": "vin",
+      "term": "le vin",
+      "translation": "вино",
+      "ipa": "lə vɛ̃",
+      "example": "Un verre de vin rouge.",
+      "exampleTranslation": "Бокал красного вина."
+    },
+    {
+      "id": "pomme",
+      "term": "la pomme",
+      "translation": "яблоко",
+      "ipa": "la pɔm",
+      "example": "J'aime les pommes.",
+      "exampleTranslation": "Я люблю яблоки."
+    },
+    {
+      "id": "poulet",
+      "term": "le poulet",
+      "translation": "курица",
+      "ipa": "lə pu.lɛ",
+      "example": "Le poulet-frites, s'il vous plaît.",
+      "exampleTranslation": "Курица с картофелем фри, пожалуйста."
+    },
+    {
+      "id": "poisson",
+      "term": "le poisson",
+      "translation": "рыба",
+      "ipa": "lə pwa.sɔ̃",
+      "example": "Je prends le poisson du jour.",
+      "exampleTranslation": "Я возьму рыбу дня."
+    },
+    {
+      "id": "petit-dejeuner",
+      "term": "le petit-déjeuner",
+      "translation": "завтрак",
+      "ipa": "lə pə.ti de.ʒœ.ne",
+      "example": "Le petit-déjeuner est à huit heures.",
+      "exampleTranslation": "Завтрак в восемь часов."
+    },
+    {
+      "id": "dejeuner",
+      "term": "le déjeuner",
+      "translation": "обед",
+      "ipa": "lə de.ʒœ.ne",
+      "example": "On déjeune à midi.",
+      "exampleTranslation": "Мы обедаем в полдень."
+    },
+    {
+      "id": "diner",
+      "term": "le dîner",
+      "translation": "ужин",
+      "ipa": "lə di.ne",
+      "example": "Le dîner est prêt.",
+      "exampleTranslation": "Ужин готов."
+    },
+    {
+      "id": "addition",
+      "term": "l'addition",
+      "translation": "счёт",
+      "ipa": "la.di.sjɔ̃",
+      "example": "L'addition, s'il vous plaît.",
+      "exampleTranslation": "Счёт, пожалуйста."
+    }
+  ]
+}

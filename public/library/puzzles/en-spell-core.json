@@ -1,0 +1,20 @@
+{
+  "id": "en-spell-core",
+  "title": "Орфография A1",
+  "language": "en",
+  "level": "A1",
+  "kind": "puzzles",
+  "description": "Соберите английские слова",
+  "entries": [
+    { "id": "hello", "term": "hello", "translation": "привет" },
+    { "id": "thank", "term": "thank", "translation": "благодарить" },
+    { "id": "water", "term": "water", "translation": "вода" },
+    { "id": "bread", "term": "bread", "translation": "хлеб" },
+    { "id": "house", "term": "house", "translation": "дом" },
+    { "id": "train", "term": "train", "translation": "поезд" },
+    { "id": "apple", "term": "apple", "translation": "яблоко" },
+    { "id": "school", "term": "school", "translation": "школа" },
+    { "id": "friend", "term": "friend", "translation": "друг" },
+    { "id": "please", "term": "please", "translation": "пожалуйста" }
+  ]
+}

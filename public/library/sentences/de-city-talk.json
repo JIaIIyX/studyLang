@@ -1,0 +1,58 @@
+{
+  "id": "de-city-talk",
+  "title": "В городе",
+  "language": "de",
+  "level": "A1",
+  "kind": "sentences",
+  "description": "Как спросить дорогу и купить билет",
+  "entries": [
+    {
+      "id": "s1",
+      "term": "Entschuldigung, wo ist der Bahnhof?",
+      "translation": "Извините, где вокзал?",
+      "tokens": ["Entschuldigung", ",", "wo", "ist", "der", "Bahnhof", "?"]
+    },
+    {
+      "id": "s2",
+      "term": "Ich hätte gern eine Fahrkarte.",
+      "translation": "Я бы хотел билет.",
+      "tokens": ["Ich", "hätte", "gern", "eine", "Fahrkarte", "."]
+    },
+    {
+      "id": "s3",
+      "term": "Wie komme ich zum Museum?",
+      "translation": "Как пройти к музею?",
+      "tokens": ["Wie", "komme", "ich", "zum", "Museum", "?"]
+    },
+    {
+      "id": "s4",
+      "term": "Der Zug fährt um zehn Uhr.",
+      "translation": "Поезд отправляется в десять.",
+      "tokens": ["Der", "Zug", "fährt", "um", "zehn", "Uhr", "."]
+    },
+    {
+      "id": "s5",
+      "term": "Sprechen Sie Englisch?",
+      "translation": "Вы говорите по-английски?",
+      "tokens": ["Sprechen", "Sie", "Englisch", "?"]
+    },
+    {
+      "id": "s6",
+      "term": "Ich suche ein Café in der Nähe.",
+      "translation": "Я ищу кафе поблизости.",
+      "tokens": ["Ich", "suche", "ein", "Café", "in", "der", "Nähe", "."]
+    },
+    {
+      "id": "s7",
+      "term": "Können Sie das bitte wiederholen?",
+      "translation": "Не могли бы вы повторить?",
+      "tokens": ["Können", "Sie", "das", "bitte", "wiederholen", "?"]
+    },
+    {
+      "id": "s8",
+      "term": "Danke, das hilft mir sehr.",
+      "translation": "Спасибо, это очень помогает.",
+      "tokens": ["Danke", ",", "das", "hilft", "mir", "sehr", "."]
+    }
+  ]
+}

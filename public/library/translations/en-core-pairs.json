@@ -1,0 +1,22 @@
+{
+  "id": "en-core-pairs",
+  "title": "Базовый словарь",
+  "language": "en",
+  "level": "A1",
+  "kind": "translations",
+  "description": "EN ↔ RU на скорость",
+  "entries": [
+    { "id": "hello", "term": "hello", "translation": "привет" },
+    { "id": "thank-you", "term": "thank you", "translation": "спасибо" },
+    { "id": "please", "term": "please", "translation": "пожалуйста" },
+    { "id": "water", "term": "water", "translation": "вода" },
+    { "id": "bread", "term": "bread", "translation": "хлеб" },
+    { "id": "house", "term": "house", "translation": "дом" },
+    { "id": "city", "term": "city", "translation": "город" },
+    { "id": "friend", "term": "friend", "translation": "друг" },
+    { "id": "today", "term": "today", "translation": "сегодня" },
+    { "id": "tomorrow", "term": "tomorrow", "translation": "завтра" },
+    { "id": "station", "term": "station", "translation": "станция / вокзал" },
+    { "id": "speak", "term": "speak", "translation": "говорить" }
+  ]
+}

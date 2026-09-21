@@ -1,0 +1,111 @@
+{
+  "id": "fr-a1-greetings",
+  "title": "Приветствия",
+  "language": "fr",
+  "level": "A1",
+  "kind": "cards",
+  "description": "Базовые формулы вежливости и знакомства",
+  "entries": [
+    {
+      "id": "bonjour",
+      "term": "bonjour",
+      "translation": "привет / добрый день",
+      "ipa": "bɔ̃.ʒuʁ",
+      "pos": "междометие",
+      "example": "Bonjour, je m'appelle Marie.",
+      "exampleTranslation": "Здравствуйте, меня зовут Мари.",
+      "hint": "дневное приветствие"
+    },
+    {
+      "id": "bonsoir",
+      "term": "bonsoir",
+      "translation": "добрый вечер",
+      "ipa": "bɔ̃.swaʁ",
+      "pos": "междометие",
+      "example": "Bonsoir, comment allez-vous ?",
+      "exampleTranslation": "Добрый вечер, как у вас дела?"
+    },
+    {
+      "id": "salut",
+      "term": "salut",
+      "translation": "привет",
+      "ipa": "sa.ly",
+      "pos": "междометие",
+      "example": "Salut, ça va ?",
+      "exampleTranslation": "Привет, как дела?",
+      "hint": "неформально"
+    },
+    {
+      "id": "au-revoir",
+      "term": "au revoir",
+      "translation": "до свидания",
+      "ipa": "o ʁə.vwaʁ",
+      "example": "Au revoir et à bientôt.",
+      "exampleTranslation": "До свидания и до скорого."
+    },
+    {
+      "id": "merci",
+      "term": "merci",
+      "translation": "спасибо",
+      "ipa": "mɛʁ.si",
+      "example": "Merci beaucoup !",
+      "exampleTranslation": "Большое спасибо!"
+    },
+    {
+      "id": "sil-vous-plait",
+      "term": "s'il vous plaît",
+      "translation": "пожалуйста",
+      "ipa": "sil vu plɛ",
+      "example": "Un café, s'il vous plaît.",
+      "exampleTranslation": "Кофе, пожалуйста."
+    },
+    {
+      "id": "oui",
+      "term": "oui",
+      "translation": "да",
+      "ipa": "wi",
+      "example": "Oui, bien sûr.",
+      "exampleTranslation": "Да, конечно."
+    },
+    {
+      "id": "non",
+      "term": "non",
+      "translation": "нет",
+      "ipa": "nɔ̃",
+      "example": "Non, merci.",
+      "exampleTranslation": "Нет, спасибо."
+    },
+    {
+      "id": "excusez-moi",
+      "term": "excusez-moi",
+      "translation": "извините",
+      "ipa": "ɛk.sky.ze mwa",
+      "example": "Excusez-moi, où est la gare ?",
+      "exampleTranslation": "Извините, где вокзал?"
+    },
+    {
+      "id": "comment-ca-va",
+      "term": "comment ça va",
+      "translation": "как дела",
+      "ipa": "kɔ.mɑ̃ sa va",
+      "example": "Comment ça va aujourd'hui ?",
+      "exampleTranslation": "Как дела сегодня?"
+    },
+    {
+      "id": "je-mappelle",
+      "term": "je m'appelle",
+      "translation": "меня зовут",
+      "ipa": "ʒə ma.pɛl",
+      "example": "Je m'appelle Alex.",
+      "exampleTranslation": "Меня зовут Алекс."
+    },
+    {
+      "id": "enchante",
+      "term": "enchanté",
+      "translation": "приятно познакомиться",
+      "ipa": "ɑ̃.ʃɑ̃.te",
+      "example": "Enchanté de faire votre connaissance.",
+      "exampleTranslation": "Очень приятно с вами познакомиться."
+    }
+  ]
+}

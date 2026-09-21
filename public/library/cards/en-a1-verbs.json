@@ -1,0 +1,95 @@
+{
+  "id": "en-a1-verbs",
+  "title": "Неправильные глаголы",
+  "language": "en",
+  "level": "A2",
+  "kind": "cards",
+  "description": "go / went / gone и другие формы",
+  "entries": [
+    {
+      "id": "go",
+      "term": "go / went / gone",
+      "translation": "идти",
+      "example": "I went to Paris last year.",
+      "exampleTranslation": "Я ездил в Париж в прошлом году.",
+      "hint": "неправильный глагол"
+    },
+    {
+      "id": "see",
+      "term": "see / saw / seen",
+      "translation": "видеть",
+      "example": "Have you seen this film?",
+      "exampleTranslation": "Ты видел этот фильм?"
+    },
+    {
+      "id": "take",
+      "term": "take / took / taken",
+      "translation": "брать",
+      "example": "She took the train at 9.",
+      "exampleTranslation": "Она села на поезд в 9."
+    },
+    {
+      "id": "come",
+      "term": "come / came / come",
+      "translation": "приходить",
+      "example": "They came home late.",
+      "exampleTranslation": "Они пришли домой поздно."
+    },
+    {
+      "id": "have",
+      "term": "have / had / had",
+      "translation": "иметь",
+      "example": "We had a great time.",
+      "exampleTranslation": "Мы отлично провели время."
+    },
+    {
+      "id": "do",
+      "term": "do / did / done",
+      "translation": "делать",
+      "example": "I have done my homework.",
+      "exampleTranslation": "Я сделал домашнее задание."
+    },
+    {
+      "id": "get",
+      "term": "get / got / got",
+      "translation": "получать / добираться",
+      "example": "How do I get to the museum?",
+      "exampleTranslation": "Как добраться до музея?"
+    },
+    {
+      "id": "make",
+      "term": "make / made / made",
+      "translation": "делать / создавать",
+      "example": "He made coffee for us.",
+      "exampleTranslation": "Он приготовил нам кофе."
+    },
+    {
+      "id": "know",
+      "term": "know / knew / known",
+      "translation": "знать",
+      "example": "I knew the answer.",
+      "exampleTranslation": "Я знал ответ."
+    },
+    {
+      "id": "think",
+      "term": "think / thought / thought",
+      "translation": "думать",
+      "example": "I thought it was easy.",
+      "exampleTranslation": "Я думал, это легко."
+    },
+    {
+      "id": "say",
+      "term": "say / said / said",
+      "translation": "говорить / сказать",
+      "example": "She said hello.",
+      "exampleTranslation": "Она сказала «привет»."
+    },
+    {
+      "id": "write",
+      "term": "write / wrote / written",
+      "translation": "писать",
+      "example": "I have written an email.",
+      "exampleTranslation": "Я написал письмо."
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "id": "de-a1-greetings",
+  "title": "Приветствия",
+  "language": "de",
+  "level": "A1",
+  "kind": "cards",
+  "description": "Hallo, Danke и первые диалоги",
+  "entries": [
+    {
+      "id": "hallo",
+      "term": "Hallo",
+      "translation": "привет",
+      "ipa": "ˈha.lo",
+      "example": "Hallo, wie geht's?",
+      "exampleTranslation": "Привет, как дела?"
+    },
+    {
+      "id": "guten-morgen",
+      "term": "Guten Morgen",
+      "translation": "доброе утро",
+      "ipa": "ˈɡuː.tn̩ ˈmɔʁ.ɡn̩",
+      "example": "Guten Morgen, Frau Keller.",
+      "exampleTranslation": "Доброе утро, фрау Келлер."
+    },
+    {
+      "id": "guten-tag",
+      "term": "Guten Tag",
+      "translation": "добрый день",
+      "ipa": "ˈɡuː.tn̩ taːk",
+      "example": "Guten Tag, ich suche den Bahnhof.",
+      "exampleTranslation": "Добрый день, я ищу вокзал."
+    },
+    {
+      "id": "guten-abend",
+      "term": "Guten Abend",
+      "translation": "добрый вечер",
+      "ipa": "ˈɡuː.tn̩ ˈaː.bn̩t",
+      "example": "Guten Abend zusammen.",
+      "exampleTranslation": "Добрый вечер всем."
+    },
+    {
+      "id": "auf-wiedersehen",
+      "term": "Auf Wiedersehen",
+      "translation": "до свидания",
+      "ipa": "aʊf ˈviː.dɐ.zeː.ən",
+      "example": "Auf Wiedersehen und danke.",
+      "exampleTranslation": "До свидания и спасибо."
+    },
+    {
+      "id": "danke",
+      "term": "Danke",
+      "translation": "спасибо",
+      "ipa": "ˈdaŋ.kə",
+      "example": "Danke schön!",
+      "exampleTranslation": "Большое спасибо!"
+    },
+    {
+      "id": "bitte",
+      "term": "Bitte",
+      "translation": "пожалуйста / не за что",
+      "ipa": "ˈbɪ.tə",
+      "example": "Einen Kaffee, bitte.",
+      "exampleTranslation": "Кофе, пожалуйста."
+    },
+    {
+      "id": "ja",
+      "term": "ja",
+      "translation": "да",
+      "ipa": "jaː",
+      "example": "Ja, genau.",
+      "exampleTranslation": "Да, именно."
+    },
+    {
+      "id": "nein",
+      "term": "nein",
+      "translation": "нет",
+      "ipa": "naɪn",
+      "example": "Nein, danke.",
+      "exampleTranslation": "Нет, спасибо."
+    },
+    {
+      "id": "entschuldigung",
+      "term": "Entschuldigung",
+      "translation": "извините",
+      "ipa": "ɛntˈʃʊl.dɪ.ɡʊŋ",
+      "example": "Entschuldigung, wo ist der Dom?",
+      "exampleTranslation": "Извините, где собор?"
+    },
+    {
+      "id": "wie-gehts",
+      "term": "Wie geht's?",
+      "translation": "как дела?",
+      "ipa": "viː ɡeːts",
+      "example": "Hi, wie geht's dir?",
+      "exampleTranslation": "Привет, как у тебя дела?"
+    },
+    {
+      "id": "ich-heisse",
+      "term": "ich heiße",
+      "translation": "меня зовут",
+      "ipa": "ɪç ˈhaɪ.sə",
+      "example": "Ich heiße Lena.",
+      "exampleTranslation": "Меня зовут Лена."
+    }
+  ]
+}

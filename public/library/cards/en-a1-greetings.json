@@ -1,0 +1,106 @@
+{
+  "id": "en-a1-greetings",
+  "title": "Приветствия",
+  "language": "en",
+  "level": "A1",
+  "kind": "cards",
+  "description": "Повседневные приветствия и вежливость",
+  "entries": [
+    {
+      "id": "hello",
+      "term": "hello",
+      "translation": "привет",
+      "ipa": "həˈləʊ",
+      "example": "Hello, my name is Sam.",
+      "exampleTranslation": "Привет, меня зовут Сэм."
+    },
+    {
+      "id": "good-morning",
+      "term": "good morning",
+      "translation": "доброе утро",
+      "ipa": "ɡʊd ˈmɔː.nɪŋ",
+      "example": "Good morning, everyone.",
+      "exampleTranslation": "Доброе утро всем."
+    },
+    {
+      "id": "good-evening",
+      "term": "good evening",
+      "translation": "добрый вечер",
+      "ipa": "ɡʊd ˈiːv.nɪŋ",
+      "example": "Good evening, how are you?",
+      "exampleTranslation": "Добрый вечер, как дела?"
+    },
+    {
+      "id": "goodbye",
+      "term": "goodbye",
+      "translation": "до свидания",
+      "ipa": "ɡʊdˈbaɪ",
+      "example": "Goodbye, see you tomorrow.",
+      "exampleTranslation": "До свидания, увидимся завтра."
+    },
+    {
+      "id": "thank-you",
+      "term": "thank you",
+      "translation": "спасибо",
+      "ipa": "θæŋk juː",
+      "example": "Thank you so much.",
+      "exampleTranslation": "Большое спасибо."
+    },
+    {
+      "id": "please",
+      "term": "please",
+      "translation": "пожалуйста",
+      "ipa": "pliːz",
+      "example": "A tea, please.",
+      "exampleTranslation": "Чай, пожалуйста."
+    },
+    {
+      "id": "yes",
+      "term": "yes",
+      "translation": "да",
+      "ipa": "jes",
+      "example": "Yes, I understand.",
+      "exampleTranslation": "Да, я понимаю."
+    },
+    {
+      "id": "no",
+      "term": "no",
+      "translation": "нет",
+      "ipa": "nəʊ",
+      "example": "No, thank you.",
+      "exampleTranslation": "Нет, спасибо."
+    },
+    {
+      "id": "excuse-me",
+      "term": "excuse me",
+      "translation": "извините",
+      "ipa": "ɪkˈskjuːz miː",
+      "example": "Excuse me, where is the station?",
+      "exampleTranslation": "Извините, где станция?"
+    },
+    {
+      "id": "how-are-you",
+      "term": "how are you",
+      "translation": "как дела",
+      "ipa": "haʊ ɑː juː",
+      "example": "Hi, how are you today?",
+      "exampleTranslation": "Привет, как ты сегодня?"
+    },
+    {
+      "id": "my-name-is",
+      "term": "my name is",
+      "translation": "меня зовут",
+      "ipa": "maɪ neɪm ɪz",
+      "example": "My name is Anna.",
+      "exampleTranslation": "Меня зовут Анна."
+    },
+    {
+      "id": "nice-to-meet-you",
+      "term": "nice to meet you",
+      "translation": "приятно познакомиться",
+      "ipa": "naɪs tə miːt juː",
+      "example": "Nice to meet you, Tom.",
+      "exampleTranslation": "Приятно познакомиться, Том."
+    }
+  ]
+}

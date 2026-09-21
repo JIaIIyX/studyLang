@@ -1,0 +1,22 @@
+{
+  "id": "de-match-core",
+  "title": "Пары A1",
+  "language": "de",
+  "level": "A1",
+  "kind": "matching",
+  "description": "Свяжите немецкое слово с русским",
+  "entries": [
+    { "id": "hallo", "term": "Hallo", "translation": "привет" },
+    { "id": "danke", "term": "Danke", "translation": "спасибо" },
+    { "id": "wasser", "term": "das Wasser", "translation": "вода" },
+    { "id": "brot", "term": "das Brot", "translation": "хлеб" },
+    { "id": "haus", "term": "das Haus", "translation": "дом" },
+    { "id": "stadt", "term": "die Stadt", "translation": "город" },
+    { "id": "freund", "term": "der Freund", "translation": "друг" },
+    { "id": "heute", "term": "heute", "translation": "сегодня" },
+    { "id": "morgen", "term": "morgen", "translation": "завтра" },
+    { "id": "bahnhof", "term": "der Bahnhof", "translation": "вокзал" },
+    { "id": "sprechen", "term": "sprechen", "translation": "говорить" },
+    { "id": "buch", "term": "das Buch", "translation": "книга" }
+  ]
+}
