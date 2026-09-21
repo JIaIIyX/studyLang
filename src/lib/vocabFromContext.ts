@@ -226,7 +226,7 @@ export function localVocabDraft(
   hasRef = false,
 ): VocabDraft | null {
   if ((isReferentialVocabWish(wish) || hasRef) && !isExplicitVocabTheme(wish)) {
-    return vocabDraftFromContext(prior, taken)
+    return vocabDraftFromContext(prior)
   }
 
   const title = vocabTitleFromWish(wish)

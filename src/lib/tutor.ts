@@ -35,6 +35,7 @@ import { catalogFromMessages } from './quizCatalog'
 import { GAME_KINDS, gameProgress, normalizeFileProgress } from './progress'
 import { allWordFiles, loadWordFile, readCustomFiles } from './library'
 import {
+  draftTermKeys,
   knownTermsLine,
   parseTutorPayload,
   takenTermKeys,
@@ -503,7 +504,7 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
   } catch {
     files = []
   }
-  const taken = takenTermKeys(files, messages)
+  const taken = referential ? draftTermKeys(messages) : takenTermKeys(files, messages)
   if (!hasGemini()) return localVocabReply(language, last, taken, prior, hasRef)
 
   const known = knownTermsLine(files, messages, 40, last)
@@ -524,7 +525,7 @@ export async function makeVocabReply(language: Language, messages: ChatMessage[]
     })
     const parsed = parseTutorPayload(raw)
     let file = parsed.file ? uniqueVocab(parsed.file, taken) : null
-    if (referential && prior) file = groundVocabInContext(file, prior, taken)
+    if (referential && prior) file = groundVocabInContext(file, prior)
     const minEntries = referential ? 2 : 4
     if (file && file.entries.length >= minEntries) {
       return {

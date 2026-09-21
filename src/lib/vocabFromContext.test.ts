@@ -69,6 +69,10 @@ check(
 )
 check('referential title from source', Boolean(draft && /фраз/i.test(draft.title)))
 
+const shelfTaken = new Set(['guten tag', 'wie geht es dir', 'ich heisse', 'ich heiße'])
+const blocked = localVocabDraft('de', wish, shelfTaken, prior)
+check('shelf taken still extracts referential examples', Boolean(blocked && blocked.entries.some((entry) => /guten tag/i.test(entry.term))))
+
 const noPrior = localVocabDraft('de', wish, new Set(), '')
 check('referential without prior does not invent pack', noPrior === null)
 
@@ -145,6 +149,19 @@ check(
       refDraft.entries.some((entry) => /guten tag/i.test(entry.term)) &&
       !refDraft.entries.some((entry) => /käse|milch/i.test(entry.term)),
   ),
+)
+const addOnly: ChatMessage = {
+  id: 'ask2',
+  role: 'user',
+  content: 'добавь в словарь',
+  createdAt: 3,
+  refIds: ['greet'],
+  refSnippet: 'Guten Tag / Wie geht es dir',
+}
+const addOnlyDraft = localVocabDraft('de', addOnly.content, new Set(['guten tag']), contextForVocab([greetings, laterFood, addOnly]), true)
+check(
+  'quoted message without эти still extracts greetings',
+  Boolean(addOnlyDraft && addOnlyDraft.entries.some((entry) => /guten tag/i.test(entry.term))),
 )
 const focused = compactVocabHistory([{ role: 'user', text: 'добавь из этого' }], true, prior)
 check('focused history injects referenced phrases', focused.some((item) => /guten tag/i.test(item.text)))

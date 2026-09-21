@@ -276,6 +276,17 @@ export function takenTermKeys(files: WordFile[], messages: ChatMessage[]) {
   return keys
 }
 
+export function draftTermKeys(messages: ChatMessage[]) {
+  const keys = new Set<string>()
+  for (const message of messages) {
+    for (const entry of message.fileDraft?.entries ?? []) {
+      const key = termKey(entry.term)
+      if (key) keys.add(key)
+    }
+  }
+  return keys
+}
+
 export function knownTermsLine(files: WordFile[], messages: ChatMessage[], limit = 40, wish = '') {
   const needles = fold(wish)
     .split(/[^a-zа-яё0-9]+/i)
