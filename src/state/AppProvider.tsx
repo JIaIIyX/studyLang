@@ -14,6 +14,7 @@ import { normalizeFileProgress, writeGame } from '../lib/progress'
 import { setVoiceVolume as applyVoiceVolume } from '../lib/speech'
 import { forgetTutorLibrary } from '../lib/tutor'
 import { saveTutorDraft } from '../lib/tutorFile'
+import { buildTutorMemory } from '../lib/tutorMemory'
 import type { Chat, ChatMessage, FileProgress, GameKind, Language, ThemeMode, Virtualization } from '../types'
 
 type AppContextValue = {
@@ -151,11 +152,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (chat.id !== chatId) return chat
         const title =
           chat.messages.length === 0 && message.role === 'user' ? message.content.slice(0, 42) : chat.title
+        const messages = [...chat.messages, full]
+        const memory =
+          full.channel === 'partner' ? chat.memory : buildTutorMemory(chat.language, messages, chat.memory)
         return {
           ...chat,
           title,
           updatedAt: Date.now(),
-          messages: [...chat.messages, full],
+          messages,
+          memory,
         }
       }),
     )

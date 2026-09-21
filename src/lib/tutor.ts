@@ -4,7 +4,6 @@ import { askGemini, hasGemini, isQuotaError, MODEL_TIMEOUT_HINT } from './llm'
 import { languageMeta, sectionMeta } from './languages'
 import {
   classifyTutorTask,
-  compactHistory,
   compactVocabHistory,
   extractAskedPhrase,
   isSimpleSay,
@@ -17,7 +16,6 @@ import {
   quizState,
   tutorAskOptions,
   tutorTurns,
-  buildTutorSystem,
   buildVocabSystem,
   LLM_BUDGET,
   buildQuizWish,
@@ -43,7 +41,13 @@ import {
   vocabPreface,
   vocabTableMarkdown,
 } from './tutorFile'
-import type { ChatMessage, FileProgress, Language, VocabDraft, WordEntry, WordFile } from '../types'
+import type { ChatMemory, ChatMessage, FileProgress, Language, VocabDraft, WordEntry, WordFile } from '../types'
+import {
+  buildTutorMemory,
+  isOngoingThread,
+  packTutorContext,
+  stripLeadingGreeting,
+} from './tutorMemory'
 
 const cache = new Map<Language, WordFile[]>()
 
@@ -161,6 +165,9 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
   const previous = messages.at(-2)
 
   if (!last) {
+    if (isOngoingThread(messages)) {
+      return 'Продолжаем. Напишите, что разобрать дальше.'
+    }
     return `${meta.greet}. Я репетитор StudyLang — держим ${meta.label.toLowerCase()}.\n\nМожем разобрать слово с полки, собрать фразу или устроить пять минут у доски.`
   }
 
@@ -333,8 +340,12 @@ export function polishTutorReply(
   task: ReturnType<typeof classifyTutorTask>,
   last: string,
   language: Language,
+  options?: { allowGreeting?: boolean },
 ) {
   let next = canonicalizeQuiz(fixReplySpaces(text))
+  if (options?.allowGreeting === false) {
+    next = stripLeadingGreeting(next)
+  }
   if (task === 'explain' || task === 'general' || task === 'say') {
     if (wantsLessonRules(last) || wantsBroadLesson(last)) {
       if (extractQuizAnswer(next)) {
@@ -374,18 +385,23 @@ export async function replyAsTutor(
     displayName?: string
     progress?: Record<string, FileProgress>
     tutorPrompt?: string
+    memory?: ChatMemory | null
   },
 ): Promise<TutorReply> {
   const meta = languageMeta(language)
   const thread = tutorTurns(messages)
   const last = thread.at(-1)?.content.trim() ?? messages.at(-1)?.content.trim() ?? ''
+  const memory = options?.memory ?? buildTutorMemory(language, thread)
 
   if (!last) {
+    if (isOngoingThread(thread, options?.memory)) {
+      return { text: 'Продолжаем. Напишите, что разобрать дальше.' }
+    }
     return { text: `${meta.greet}. Я репетитор StudyLang — держим ${meta.label.toLowerCase()}.` }
   }
 
   if (wantsVocabList(thread)) {
-    return await makeVocabReply(language, thread)
+    return await makeVocabReply(language, thread, memory)
   }
 
   let files: WordFile[] = []
@@ -452,25 +468,21 @@ export async function replyAsTutor(
     }
   }
 
-  const system = buildTutorSystem(language, last, thread, task, {
-    ...options,
+  const packed = packTutorContext(language, thread, task, {
+    displayName: options?.displayName,
+    tutorPrompt: options?.tutorPrompt,
     skillFocus: skillTutorLine(language, options?.progress),
+    memory,
   })
-  const history = compactHistory(
-    thread.map((message) => ({
-      role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
-      text: message.content,
-    })),
-    task,
-  )
 
   try {
     return {
       text: polishTutorReply(
-        await askGemini(system, history, tutorAskOptions(task)),
+        await askGemini(packed.system, packed.history, tutorAskOptions(task)),
         task,
         last,
         language,
+        { allowGreeting: packed.allowGreeting },
       ),
     }
   } catch (error) {
@@ -495,9 +507,13 @@ function localVocabReply(language: Language, wish: string, taken: Set<string>, p
   }
 }
 
-export async function makeVocabReply(language: Language, messages: ChatMessage[]): Promise<TutorReply> {
+export async function makeVocabReply(
+  language: Language,
+  messages: ChatMessage[],
+  memory?: ChatMemory | null,
+): Promise<TutorReply> {
   const last = messages.at(-1)?.content.trim() ?? ''
-  const prior = contextForVocab(messages)
+  const prior = contextForVocab(messages) || memory?.vocabExcerpt || ''
   const hasRef = Boolean(messages.at(-1)?.refIds?.length || messages.at(-1)?.refSnippet)
   const referential = (isReferentialVocabWish(last) || hasRef) && !isExplicitVocabTheme(last)
   let files: WordFile[] = []

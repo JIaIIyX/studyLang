@@ -71,6 +71,26 @@ export type ChatMessage = {
   homeworkId?: string
 }
 
+export type ChatQuizMemory = {
+  id: string
+  question: string
+  answer: string
+}
+
+export type ChatMemory = {
+  updatedAt: number
+  language: Language
+  summary: string
+  goal?: string
+  level?: string
+  topics?: string[]
+  quiz?: ChatQuizMemory | null
+  vocabTitles?: string[]
+  vocabExcerpt?: string
+  refIds?: string[]
+  openTask?: string
+}
+
 export type Virtualization = {
   sphere: string
   backstory: string
@@ -84,6 +104,7 @@ export type Chat = {
   updatedAt: number
   messages: ChatMessage[]
   virtualization?: Virtualization
+  memory?: ChatMemory
 }
 
 export type GameKind = 'cards' | 'puzzles' | 'sentences' | 'translations' | 'matching'

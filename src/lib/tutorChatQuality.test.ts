@@ -1,12 +1,14 @@
 import type { ChatMessage, WordEntry } from '../types'
-import { classifyTutorTask, isQuizItem, lessonSetupReply, quizState, wantsLessonRules } from './llmTasks'
+import { classifyTutorTask, compactHistory, isQuizItem, lessonSetupReply, quizState, wantsLessonRules } from './llmTasks'
 import { extractQuizAnswer } from './practiceTags'
 import { extractQuizChoices } from './quizChoices'
 import { plausibleQuizOptions } from './quizDistractors'
 import { bindQuizAnswer } from './quizReply'
 import { localTutorReply, polishTutorReply, wantsVocabList } from './tutor'
 import { gradeGuess } from './tutorGrade'
+import { MEMORY_RECENT_TURNS, buildTutorMemory, packTutorContext } from './tutorMemory'
 import { gradeLastQuiz, makeLocalQuiz } from './tutorQuiz'
+import { localVocabDraft } from './vocabFromContext'
 
 function check(name: string, condition: boolean) {
   if (!condition) throw new Error(`fail: ${name}`)
@@ -116,5 +118,109 @@ if (localPhrase && /sprechen sie englisch/i.test(localPhrase)) {
 }
 
 check('lesson menu itself is not a quiz item', !isQuizItem(lessonSetupReply()))
+
+const greetThread = [
+  msg('user', 'Объясни артикли der die das', { id: 'u1' }),
+  msg('assistant', 'Немецкие артикли — это род.', { id: 'a1' }),
+  msg('user', 'А что с множественным числом?', { id: 'u2' }),
+]
+const greetPacked = packTutorContext('de', greetThread, 'explain')
+check('mid-thread does not allow a greeting', greetPacked.allowGreeting === false && greetPacked.ongoing)
+check('system forbids re-greeting', /do not greet|ongoing thread/i.test(greetPacked.system))
+const secondReply = polishTutorReply(
+  'Привет!\nВо множественном почти всегда die.',
+  'explain',
+  'А что с множественным числом?',
+  'de',
+  { allowGreeting: false },
+)
+check('second assistant reply does not start with a greeting', !/^\s*(привет|здравствуй|hello|bonjour|guten\s+tag)\b/i.test(secondReply))
+check('second assistant reply keeps the lesson', /множествен|die/i.test(secondReply))
+
+const helloBack = packTutorContext('de', [...greetThread.slice(0, 2), msg('user', 'Привет!', { id: 'hi' })], 'general')
+check('user hello may be answered with hello', helloBack.allowGreeting === true)
+
+const freshChat = packTutorContext('de', [msg('user', 'Привет', { id: 'new' })], 'general')
+check('brand-new chat may greet', freshChat.allowGreeting === true && freshChat.ongoing === false)
+
+const longThread: ChatMessage[] = []
+for (let index = 0; index < 8; index += 1) {
+  longThread.push(msg('user', `вопрос ${index} про артикли и практику`, { id: `lu${index}` }))
+  longThread.push(msg('assistant', `ответ ${index}: der / die / das и примеры.`, { id: `la${index}` }))
+}
+longThread.push(msg('user', 'ещё раз про множественное число', { id: 'lu-last' }))
+const mapped = longThread.map((item) => ({
+  role: item.role === 'assistant' ? ('model' as const) : ('user' as const),
+  text: item.content,
+}))
+const fullHistory = compactHistory(mapped, 'general')
+const packedLong = packTutorContext('de', longThread, 'general')
+check('long thread uses a memory summary', Boolean(packedLong.memory.summary) && packedLong.hasMemory)
+check(
+  'history is summary + last N, not unbounded',
+  packedLong.history.length <= MEMORY_RECENT_TURNS + 1 && packedLong.history.length < fullHistory.length,
+)
+check('memory keeps the practice goal or topics', /артикл|множествен|Articles/i.test(packedLong.memory.summary))
+check('system includes the memory block', /thread memory/i.test(packedLong.system))
+
+const vocabTable = [
+  'Стартовые фразы:',
+  '',
+  '| DE | RU |',
+  '| --- | --- |',
+  '| Guten Tag | Добрый день |',
+  '| Wie geht es dir? | Как дела? |',
+  '| Ich heiße | Меня зовут |',
+].join('\n')
+const vocabThenQuiz: ChatMessage[] = [
+  msg('assistant', vocabTable, {
+    id: 'vocab1',
+    fileDraft: {
+      title: 'Стартовые фразы',
+      kind: 'words',
+      entries: [
+        { term: 'Guten Tag', translation: 'Добрый день' },
+        { term: 'Wie geht es dir?', translation: 'Как дела?' },
+        { term: 'Ich heiße', translation: 'Меня зовут' },
+      ],
+    },
+  }),
+]
+for (let index = 0; index < 3; index += 1) {
+  vocabThenQuiz.push(msg('user', `ок ${index}`, { id: `vu${index}` }))
+  vocabThenQuiz.push(msg('assistant', `продолжаем ${index}`, { id: `va${index}` }))
+}
+const quizItem = msg(
+  'assistant',
+  'Как будет по-немецки «яблоко»?\n<answer>der Apfel</answer>',
+  { id: 'quiz-open' },
+)
+const quizThread = [...vocabThenQuiz, quizItem, msg('user', 'Der Äpfel', { id: 'quiz-ans' })]
+const quizMemory = buildTutorMemory('de', quizThread)
+const quizPacked = packTutorContext('de', quizThread, 'grade', { memory: quizMemory })
+check('open quiz key survives in memory', /der apfel/i.test(quizMemory.quiz?.answer ?? ''))
+check('grade path memory keeps the key', /der apfel/i.test(quizPacked.memory.summary) && /der apfel/i.test(quizPacked.system))
+check('recent turns still include the learner answer', quizPacked.history.some((item) => /Äpfel|Apfel/i.test(item.text)))
+check('open quiz still grades as almost', /почти/i.test(gradeLastQuiz(quizThread)))
+
+const wordsAsk = [...vocabThenQuiz, msg('user', 'Можешь добавить в словарь эти слова?', { id: 'eti' })]
+const wordsMemory = buildTutorMemory('de', wordsAsk)
+const wordsPacked = packTutorContext('de', wordsAsk, 'general', { memory: wordsMemory })
+check('эти слова is still a vocab wish with a long thread', wantsVocabList(wordsAsk))
+check(
+  'memory keeps the vocab title and excerpt',
+  /стартовые фразы/i.test(wordsMemory.summary) && /guten tag/i.test(wordsMemory.vocabExcerpt ?? ''),
+)
+check(
+  'compact history dropped the old vocab table',
+  wordsPacked.hasMemory && !wordsPacked.history.some((item) => /guten tag/i.test(item.text)),
+)
+const recovered = localVocabDraft('de', 'эти слова', new Set(), wordsMemory.vocabExcerpt ?? '', false)
+check('эти слова still extracts from the memory excerpt', Boolean(recovered?.entries.some((item) => /guten tag/i.test(item.term))))
+const quotedAsk = [
+  ...vocabThenQuiz,
+  msg('user', 'добавь в словарь', { id: 'quoted', refIds: ['vocab1'], refSnippet: 'Guten Tag' }),
+]
+check('memory keeps quoted message ids', (buildTutorMemory('de', quotedAsk).refIds ?? []).includes('vocab1'))
 
 console.log('all tutorChatQuality tests passed')

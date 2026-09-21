@@ -148,7 +148,7 @@ export function ChatPage() {
   const postVocab = async (id: string, history: ChatMessage[], gen?: number) => {
     setBusy(true)
     try {
-      const reply = await makeVocabReply(language, history)
+      const reply = await makeVocabReply(language, history, chat?.memory)
       if (gen != null && gen !== sendGen.current) return
       let fileId: string | undefined
       if (reply.file) {
@@ -268,6 +268,7 @@ export function ChatPage() {
         displayName,
         progress,
         tutorPrompt,
+        memory: chat?.memory,
       })
       if (gen !== sendGen.current) return
       if (reply.retry) {

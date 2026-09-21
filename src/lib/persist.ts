@@ -1,6 +1,6 @@
 import { clampVoiceVolume } from './speech'
 import { emptyWordIgnore, parseWordIgnore, type WordIgnoreState } from './wordIgnoreState'
-import type { Chat, FileProgress, Language, ThemeMode, WordFile } from '../types'
+import type { Chat, ChatMemory, FileProgress, Language, ThemeMode, WordFile } from '../types'
 
 export type UserSnapshot = {
   displayName: string
@@ -77,6 +77,34 @@ function isLanguage(value: unknown): value is Language {
   return value === 'fr' || value === 'de' || value === 'en'
 }
 
+function asChatMemory(value: unknown): ChatMemory | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const item = value as Partial<ChatMemory>
+  if (typeof item.summary !== 'string' || !item.summary.trim()) return undefined
+  const language = isLanguage(item.language) ? item.language : undefined
+  if (!language) return undefined
+  return {
+    updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : 0,
+    language,
+    summary: item.summary.slice(0, 800),
+    goal: typeof item.goal === 'string' ? item.goal : undefined,
+    level: typeof item.level === 'string' ? item.level : undefined,
+    topics: Array.isArray(item.topics) ? item.topics.filter((entry): entry is string => typeof entry === 'string') : undefined,
+    quiz:
+      item.quiz && typeof item.quiz === 'object' && typeof item.quiz.answer === 'string'
+        ? { id: String(item.quiz.id ?? ''), question: String(item.quiz.question ?? ''), answer: item.quiz.answer }
+        : item.quiz === null
+          ? null
+          : undefined,
+    vocabTitles: Array.isArray(item.vocabTitles)
+      ? item.vocabTitles.filter((entry): entry is string => typeof entry === 'string')
+      : undefined,
+    vocabExcerpt: typeof item.vocabExcerpt === 'string' ? item.vocabExcerpt : undefined,
+    refIds: Array.isArray(item.refIds) ? item.refIds.filter((entry): entry is string => typeof entry === 'string') : undefined,
+    openTask: typeof item.openTask === 'string' ? item.openTask : undefined,
+  }
+}
+
 function asChats(value: unknown, fallback: Language): Chat[] {
   if (!Array.isArray(value)) return []
   return value
@@ -84,6 +112,7 @@ function asChats(value: unknown, fallback: Language): Chat[] {
     .map((chat) => ({
       ...chat,
       language: isLanguage(chat.language) ? chat.language : fallback,
+      memory: asChatMemory(chat.memory),
     }))
 }
 

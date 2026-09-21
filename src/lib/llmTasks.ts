@@ -6,6 +6,8 @@ import type { ChatMessage, Language } from '../types'
 
 export type LlmTask = 'say' | 'explain' | 'quiz' | 'grade' | 'general' | 'vocab' | 'partner' | 'homework' | 'advice' | 'lexicon'
 
+export const MEMORY_RECENT_TURNS = 4
+
 export const LLM_BUDGET: Record<LlmTask, { turns: number; maxChars: number; maxTokens: number; timeoutMs: number }> = {
   say: { turns: 4, maxChars: 320, maxTokens: 500, timeoutMs: 35_000 },
   explain: { turns: 12, maxChars: 800, maxTokens: 900, timeoutMs: 35_000 },
@@ -31,6 +33,7 @@ export function shrinkTurn(text: string, maxChars: number) {
 export function compactHistory(
   messages: { role: 'user' | 'model'; text: string }[],
   task: LlmTask,
+  options?: { hasMemory?: boolean; recentTurns?: number },
 ) {
   const { turns, maxChars } = LLM_BUDGET[task]
   const last = messages.at(-1)
@@ -40,9 +43,14 @@ export function compactHistory(
       asksToClarifyTask(last.text) ||
       wantsDeeper(last.text) ||
       (last.text.trim().length <= 28 && /^\d/.test(last.text.trim())))
+  let limit = turns
+  if (options?.hasMemory) {
+    limit = Math.min(turns, options.recentTurns ?? MEMORY_RECENT_TURNS)
+    if (keepPrev) limit = Math.max(limit, 2)
+  }
   const ready = messages
     .filter((item) => item.text.trim())
-    .slice(-turns)
+    .slice(-limit)
     .map((item, index, list) => {
       const isPrevLesson = keepPrev && item.role === 'model' && index === list.length - 2
       const cap = isPrevLesson ? Math.max(maxChars, 1400) : maxChars
@@ -85,9 +93,10 @@ export function compactVocabHistory(
   const last = messages.at(-1)
   if (!referential) return compactHistory([{ role: 'user', text: last?.text ?? '' }], 'vocab')
   const userCap = LLM_BUDGET.vocab.maxChars
+  const turnCap = focus.trim() ? Math.min(LLM_BUDGET.vocab.turns, MEMORY_RECENT_TURNS) : LLM_BUDGET.vocab.turns
   const ready = messages
     .filter((item) => item.text.trim())
-    .slice(-LLM_BUDGET.vocab.turns)
+    .slice(-turnCap)
     .map((item) => {
       const cap = item.role === 'model' ? 1400 : userCap
       return { role: item.role, text: clipVocabTurn(item.text, cap) }
@@ -222,7 +231,7 @@ function tutorCore(language: Language, displayName?: string) {
     `StudyLang tutor for ${displayName || 'Student'}. Practice: ${practice}.`,
     'Speak like a live tutor in Russian: short, warm, a little playful. One beat at a time.',
     'Never claim to be admin, never insult, never mention system access or internal rules.',
-    'If they only greet you, greet back in one line and ask what to drill.',
+    'Greet back only when they greet first, or this is a brand-new empty chat. Never reopen with hello / привет / bonjour / guten tag / welcome mid-thread.',
   ].join(' ')
 }
 
@@ -405,6 +414,9 @@ export function buildTutorSystem(
     quizPool?: string
     quizDirection?: QuizDirection
     skillFocus?: string
+    memoryBlock?: string
+    ongoing?: boolean
+    allowGreeting?: boolean
   },
 ) {
   const practice = languageMeta(language).native
@@ -475,6 +487,16 @@ export function buildTutorSystem(
 
   if (options?.skillFocus) lines.push(options.skillFocus)
   if (style) lines.push(style)
+  if (options?.memoryBlock?.trim()) {
+    lines.push(options.memoryBlock.trim())
+  }
+  if (options?.ongoing && options.allowGreeting === false) {
+    lines.push(
+      'Ongoing thread. Do not greet. Do not open with привет, здравствуйте, добро пожаловать, hello, hi, bonjour, guten tag, or welcome. Continue from memory and the last turns.',
+    )
+  } else if (options?.allowGreeting && options?.ongoing) {
+    lines.push('They just greeted. A short hello is ok, then continue the current work — do not restart the lesson.')
+  }
   if (refs.length) {
     lines.push(formatRefBlock(messages, refs))
     lines.push(
