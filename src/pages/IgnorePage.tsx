@@ -27,15 +27,15 @@ export function IgnorePage() {
   const levels = useMemo(() => enabledLevels(language), [language, tick])
 
   return (
-    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-4 pb-16 pt-2 md:px-8">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-terracotta">подсветка</p>
-      <h1 className="font-display mt-1 text-4xl italic">Известные слова</h1>
+    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:pb-16 md:px-8">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta sm:tracking-[0.2em]">подсветка</p>
+      <h1 className="font-display mt-1 text-3xl italic sm:text-4xl">Известные слова</h1>
       <p className="mt-2 max-w-xl text-muted">
         Слова из игнора и выбранных уровней не подсвечиваются в чате. Сравнение локальное, без модели. Сейчас{' '}
         {meta.label.toLowerCase()}.
       </p>
 
-      <section className="mt-8 rounded-3xl border border-line bg-surface p-5">
+      <section className="mt-6 rounded-2xl border border-line bg-surface p-4 sm:mt-8 sm:rounded-3xl sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <EyeOff className="h-4 w-4 text-terracotta" />
           <h2 className="font-display text-2xl italic">Игнор-список</h2>

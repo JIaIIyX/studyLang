@@ -41,7 +41,7 @@ export function AppShell() {
       )}
 
       <main className="paper-sheet flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between px-3 md:px-5">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-1 px-2 sm:h-14 sm:gap-2 sm:px-3 md:px-5">
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -62,10 +62,10 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="ml-1 flex h-9 items-center gap-2 rounded-xl border border-line bg-surface/80 px-3 text-sm font-medium hover:bg-hover"
+              className="ml-0.5 flex h-9 max-w-[9.5rem] items-center gap-2 rounded-xl border border-line bg-surface/80 px-2 text-sm font-medium hover:bg-hover sm:ml-1 sm:px-3"
             >
-              <span className="h-2 w-2 rounded-full" style={{ background: meta.swatch }} />
-              {meta.native}
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: meta.swatch }} />
+              <span className="truncate max-[380px]:hidden">{meta.native}</span>
               <span className="hidden text-muted sm:inline">· {meta.label}</span>
             </button>
           </div>

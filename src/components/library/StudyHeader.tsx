@@ -44,12 +44,12 @@ export function StudyHeader({
   }
 
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
+      <div className="min-w-0">
         <Link to={`/${kind}`} className="text-sm text-muted hover:text-ink">
           ← к полке файлов
         </Link>
-        <h1 className="font-display mt-1 text-3xl italic">
+        <h1 className="font-display mt-1 text-2xl italic sm:text-3xl">
           {meta?.flag} {file?.title ?? 'Загрузка…'}
         </h1>
         <p className="text-sm text-muted">

@@ -30,7 +30,7 @@ export function MeaningsTask({ task, draft, onDraft }: DraftProps) {
             key={option}
             type="button"
             onClick={() => toggle(option)}
-            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-study text-lg leading-7 transition ${
+            className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left font-study text-base leading-6 transition sm:px-4 sm:py-3 sm:text-lg sm:leading-7 ${
               active ? 'border-terracotta bg-canvas' : 'border-line bg-surface hover:border-terracotta/35 hover:bg-hover'
             }`}
           >
@@ -59,18 +59,18 @@ export function WordsTask({ task, draft, onDraft }: DraftProps) {
 
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border border-line">
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] border-b border-line bg-canvas px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-terracotta">
+      <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)] border-b border-line bg-canvas px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-terracotta sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.14em]">
         <span>{fromRu ? 'Русский' : 'Слово'}</span>
         <span>{fromRu ? 'На язык тетради' : 'Перевод'}</span>
       </div>
       {terms.map((term) => (
-        <label key={term} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center border-b border-line last:border-b-0">
-          <span className="font-study px-4 py-3 text-xl">{term}</span>
+        <label key={term} className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)] items-center border-b border-line last:border-b-0">
+          <span className="font-study break-words px-2 py-2 text-base sm:px-4 sm:py-3 sm:text-xl">{term}</span>
           <input
             value={map[term] ?? ''}
             onChange={(event) => setValue(term, event.target.value)}
             placeholder={fromRu ? 'на языке тетради' : 'перевод'}
-            className="font-print h-12 border-l border-line bg-surface px-4 outline-none focus:bg-canvas focus:ring-2 focus:ring-terracotta/30"
+            className="font-print h-11 min-w-0 border-l border-line bg-surface px-2 text-sm outline-none focus:bg-canvas focus:ring-2 focus:ring-terracotta/30 sm:h-12 sm:px-4 sm:text-base"
           />
         </label>
       ))}
@@ -98,7 +98,7 @@ export function RowsTask({ task, draft, onDraft }: DraftProps) {
             value={lines[index] ?? ''}
             onChange={(event) => setLine(index, event.target.value)}
             placeholder={`Предложение со словом «${word}»`}
-            className="font-print mt-1 h-12 w-full rounded-xl border border-line bg-canvas px-4 outline-none focus:ring-2 focus:ring-terracotta/30"
+            className="font-print mt-1 h-11 w-full rounded-xl border border-line bg-canvas px-3 text-sm outline-none focus:ring-2 focus:ring-terracotta/30 sm:h-12 sm:px-4"
           />
         </label>
       ))}
@@ -127,7 +127,7 @@ export function MatchTask({ task, draft, onDraft }: DraftProps) {
   }
 
   return (
-    <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+    <div className="mt-4 grid gap-3 sm:gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <div className="space-y-2">
         {pairs.map((pair) => (
           <div
@@ -137,13 +137,13 @@ export function MatchTask({ task, draft, onDraft }: DraftProps) {
               const right = takeDrag(event, dragKind)
               if (right) place(pair.left, right)
             }}
-            className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
+            className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-3 py-2 sm:flex-row sm:items-center sm:gap-3"
           >
-            <span className="font-study min-w-0 flex-1 text-xl">{pair.left}</span>
+            <span className="font-study min-w-0 break-words text-lg sm:flex-1 sm:text-xl">{pair.left}</span>
             <button
               type="button"
               onClick={() => map[pair.left] && place(pair.left, '')}
-              className={`min-h-11 min-w-[8rem] rounded-lg border px-3 py-2 text-left text-sm ${
+              className={`min-h-11 w-full rounded-lg border px-3 py-2 text-left text-sm sm:min-w-[8rem] sm:w-auto ${
                 map[pair.left] ? 'border-terracotta bg-canvas font-study text-lg' : 'border-dashed border-line text-muted'
               }`}
             >
