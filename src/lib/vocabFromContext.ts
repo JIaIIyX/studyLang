@@ -89,7 +89,16 @@ export function previousAssistantContent(messages: ChatMessage[]) {
 }
 
 export function contextForVocab(messages: ChatMessage[]) {
-  return referencedContext(messages) || previousAssistantContent(messages)
+  const referenced = referencedContext(messages)
+  if (referenced) return referenced
+  let fallback = ''
+  for (let index = messages.length - 2; index >= 0; index -= 1) {
+    const item = messages[index]
+    if (item?.role !== 'assistant' || !item.content.trim()) continue
+    if (!fallback) fallback = item.content
+    if (extractVocabEntriesFromText(item.content).length >= 2) return item.content
+  }
+  return fallback
 }
 
 function unwrapPart(value: string) {
@@ -162,7 +171,28 @@ export function extractVocabEntriesFromText(text: string): VocabDraftEntry[] {
     }
   }
 
+  if (rows.length < 2) {
+    for (const item of knownPhraseHits(text)) collectPair(rows, seen, item.term, item.translation)
+  }
+
   return rows
+}
+
+const KNOWN_PHRASES: { re: RegExp; term: string; translation: string }[] = [
+  { re: /guten\s+tag/i, term: 'Guten Tag', translation: 'Добрый день' },
+  { re: /guten\s+morgen/i, term: 'Guten Morgen', translation: 'Доброе утро' },
+  { re: /guten\s+abend/i, term: 'Guten Abend', translation: 'Добрый вечер' },
+  { re: /wie\s+geht(?:'s|\s+es)\s+dir/i, term: 'Wie geht es dir?', translation: 'Как дела?' },
+  { re: /wie\s+geht(?:'s|\s+es)\s+ihnen/i, term: 'Wie geht es Ihnen?', translation: 'Как дела?' },
+  { re: /ich\s+hei(?:ß|ss)e/i, term: 'Ich heiße', translation: 'Меня зовут' },
+  { re: /(?:^|[^\p{L}])hallo(?:[^\p{L}]|$)/iu, term: 'Hallo', translation: 'Привет' },
+  { re: /(?:^|[^\p{L}])danke(?:[^\p{L}]|$)/iu, term: 'Danke', translation: 'Спасибо' },
+  { re: /auf\s+wiedersehen/i, term: 'Auf Wiedersehen', translation: 'До свидания' },
+  { re: /sprechen\s+sie\s+englisch/i, term: 'Sprechen Sie Englisch?', translation: 'Вы говорите по-английски?' },
+]
+
+function knownPhraseHits(text: string) {
+  return KNOWN_PHRASES.filter((item) => item.re.test(text))
 }
 
 export function vocabTitleFromPrior(text: string) {
@@ -170,6 +200,7 @@ export function vocabTitleFromPrior(text: string) {
   if (heading) return unwrapPart(heading).slice(0, 40)
   if (/стартов/i.test(text)) return 'Стартовые фразы'
   if (/приветств/i.test(text)) return 'Приветствия'
+  if (/guten\s+tag|wie\s+geht|ich\s+hei|hallo/i.test(text) && !/фраз/i.test(text)) return 'Приветствия'
   if (/фраз/i.test(text)) return 'Фразы из чата'
   return 'Слова из чата'
 }
@@ -197,22 +228,44 @@ function looksLikeInventedTitle(title: string) {
   return !value || value === 'словарь' || PACK_TITLES.has(value)
 }
 
+const FOOD_KEY =
+  /^(kase|kaese|milch|kartoffel|reis|brot|butter|hahnchen|apfel|cheese|milk|bread|rice|potato|chicken|pomme|fromage|lait|pain)$/
+
+function isFoodTerm(term: string) {
+  const last = fold(term).split(' ').filter(Boolean).at(-1) ?? ''
+  return FOOD_KEY.test(last)
+}
+
+function priorHasTerm(prior: string, term: string) {
+  const key = termKey(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (key.length < 3) return false
+  return new RegExp(`(?:^|[^a-z0-9])${key}(?:[^a-z0-9]|$)`, 'i').test(fold(prior))
+}
+
+function unsourcedFoodPack(draft: VocabDraft, prior: string) {
+  const food = draft.entries.filter((entry) => isFoodTerm(entry.term))
+  if (food.length < 3) return false
+  return food.filter((entry) => priorHasTerm(prior, entry.term)).length < 2
+}
+
 export function groundVocabInContext(
   draft: VocabDraft | null,
   prior: string,
   taken: Set<string> = new Set(),
 ): VocabDraft | null {
   const extracted = vocabDraftFromContext(prior, taken)
-  if (!draft) return extracted
-  const blob = fold(prior)
+  if (!draft || unsourcedFoodPack(draft, prior)) return extracted
   const allowed = new Set((extracted?.entries ?? []).map((entry) => termKey(entry.term)))
   const grounded = draft.entries.filter((entry) => {
     const key = termKey(entry.term)
     if (!key) return false
-    return allowed.has(key) || (blob.includes(key) && key.length >= 3)
+    return allowed.has(key) || priorHasTerm(prior, entry.term)
   })
   if (grounded.length >= 2) {
-    const title = looksLikeInventedTitle(draft.title) ? extracted?.title || draft.title : draft.title
+    const title =
+      looksLikeInventedTitle(draft.title) || /эти слова|добав/i.test(draft.title)
+        ? extracted?.title || vocabTitleFromPrior(prior)
+        : draft.title
     return uniqueVocab({ ...draft, title, entries: grounded }, taken)
   }
   return extracted

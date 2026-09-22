@@ -166,5 +166,79 @@ check(
 const focused = compactVocabHistory([{ role: 'user', text: 'добавь из этого' }], true, prior)
 check('focused history injects referenced phrases', focused.some((item) => /guten tag/i.test(item.text)))
 
+const greetingSnippet = [
+  'С чего начать:',
+  'Guten Tag! — Добрый день!',
+  'Wie geht es dir? — Как дела?',
+  'Ich heiße … — Меня зовут …',
+].join('\n')
+const greetingWish = 'Можешь добавить в словарь эти слова?'
+const greetingDraft = localVocabDraft('de', greetingWish, new Set(), greetingSnippet)
+check('greeting wish extracts Guten Tag', Boolean(greetingDraft?.entries.some((entry) => /guten tag/i.test(entry.term))))
+check('greeting wish extracts Wie geht es', Boolean(greetingDraft?.entries.some((entry) => /wie geht es dir/i.test(entry.term))))
+check('greeting wish extracts Ich heiße', Boolean(greetingDraft?.entries.some((entry) => /ich heiße|ich heisse/i.test(entry.term))))
+check(
+  'greeting wish does not invent food',
+  Boolean(greetingDraft && !greetingDraft.entries.some((entry) => /käse|milch|kartoffel|reis|hähnchen/i.test(entry.term))),
+)
+check('greeting wish is not titled as food', Boolean(greetingDraft && !/еда|käse/i.test(greetingDraft.title)))
+
+const proseGreetings = 'Начнём с приветствий: Guten Tag, Wie geht es dir и Ich heiße.'
+const proseDraft = localVocabDraft('de', greetingWish, new Set(), proseGreetings)
+check(
+  'prose greetings still extract',
+  Boolean(
+    proseDraft &&
+      proseDraft.entries.some((entry) => /guten tag/i.test(entry.term)) &&
+      proseDraft.entries.some((entry) => /wie geht es dir/i.test(entry.term)) &&
+      proseDraft.entries.some((entry) => /ich heiße|ich heisse/i.test(entry.term)) &&
+      !proseDraft.entries.some((entry) => /käse|milch|kartoffel|reis/i.test(entry.term)),
+  ),
+)
+
+const wishTitleFood = {
+  title: 'Можешь добавить в словарь эти слова?',
+  kind: 'words' as const,
+  entries: [
+    { term: 'Käse', translation: 'сыр' },
+    { term: 'Milch', translation: 'молоко' },
+    { term: 'Kartoffel', translation: 'картофель' },
+    { term: 'Reis', translation: 'рис' },
+  ],
+}
+const groundedGreeting = groundVocabInContext(wishTitleFood, greetingSnippet)
+check(
+  'grounded greeting snippet drops the food pack',
+  Boolean(
+    groundedGreeting &&
+      groundedGreeting.entries.some((entry) => /guten tag/i.test(entry.term)) &&
+      !groundedGreeting.entries.some((entry) => /käse|milch|kartoffel|reis/i.test(entry.term)) &&
+      !/еда/i.test(groundedGreeting.title),
+  ),
+)
+
+const laterAck: ChatMessage = {
+  id: 'ack',
+  role: 'assistant',
+  content: 'Хорошо, идём дальше.',
+  createdAt: 2,
+}
+const greetOnly: ChatMessage = {
+  id: 'greet-src',
+  role: 'assistant',
+  content: proseGreetings,
+  createdAt: 1,
+}
+const wishMsg: ChatMessage = {
+  id: 'wish',
+  role: 'user',
+  content: greetingWish,
+  createdAt: 3,
+}
+const scanned = contextForVocab([greetOnly, laterAck, wishMsg])
+const scannedDraft = localVocabDraft('de', greetingWish, new Set(), scanned)
+check('context skips a later ack and keeps greetings', /guten tag/i.test(scanned) && Boolean(scannedDraft?.entries.some((entry) => /guten tag/i.test(entry.term))))
+check('scanned context is not a food pack', Boolean(scannedDraft && !scannedDraft.entries.some((entry) => /käse|milch|kartoffel/i.test(entry.term))))
+
 console.log('all vocabFromContext tests passed')
 

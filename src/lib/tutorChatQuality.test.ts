@@ -1,8 +1,17 @@
 import type { ChatMessage, WordEntry } from '../types'
-import { classifyTutorTask, compactHistory, isQuizItem, lessonSetupReply, quizState, wantsLessonRules } from './llmTasks'
+import {
+  buildTutorSystem,
+  classifyTutorTask,
+  compactHistory,
+  hasFalseGermanPresentClaim,
+  isQuizItem,
+  lessonSetupReply,
+  quizState,
+  wantsLessonRules,
+} from './llmTasks'
 import { extractQuizAnswer } from './practiceTags'
 import { extractQuizChoices } from './quizChoices'
-import { plausibleQuizOptions } from './quizDistractors'
+import { plausibleQuizOptions, repairQuizChoiceButtons } from './quizDistractors'
 import { bindQuizAnswer } from './quizReply'
 import { localTutorReply, polishTutorReply, wantsVocabList } from './tutor'
 import { gradeGuess } from './tutorGrade'
@@ -20,7 +29,10 @@ function msg(role: ChatMessage['role'], content: string, extra: Partial<ChatMess
 }
 
 check('дай правила is a rules request', wantsLessonRules('Дай правила'))
+check('дай грамматику is a rules request', wantsLessonRules('Дай грамматику'))
+check('какие еще правила is a rules request', wantsLessonRules('какие еще правила немецкого языка есть?'))
 check('дай правила is explain', classifyTutorTask('Дай правила', { quizOpen: false, leftQuiz: false }) === 'explain')
+check('дай грамматику is explain', classifyTutorTask('Дай грамматику', { quizOpen: false, leftQuiz: false }) === 'explain')
 check(
   'эти слова is a vocab wish',
   wantsVocabList([msg('assistant', 'фразы'), msg('user', 'Можешь добавить в словарь эти слова?')]),
@@ -43,7 +55,16 @@ const rulesAsButtons = [
 const polished = polishTutorReply(rulesAsButtons, 'explain', 'Дай правила', 'de')
 check('rules polish has no btn chips', !/<(btn|opt)>/i.test(polished))
 check('rules polish is not a quiz', !extractQuizAnswer(polished) && extractQuizChoices(polished).length < 2)
-check('rules polish keeps teaching', /после каждой фразы/i.test(polished))
+check(
+  'rules polish is grammar not chat meta',
+  /порядок слов/i.test(polished) &&
+    /артикл/i.test(polished) &&
+    /падеж/i.test(polished) &&
+    /ich lerne/i.test(polished) &&
+    /wir lernen/i.test(polished) &&
+    /ihr lernt/i.test(polished) &&
+    !/после каждой фразы|будем говорить коротко|не зубрите|повторяйте вслух/i.test(polished),
+)
 
 const quizSneak = [
   'Правила:',
@@ -58,7 +79,17 @@ check('rules path does not keep quiz chips', extractQuizChoices(stripped).length
 
 const localRules = localTutorReply('de', [msg('user', 'Дай правила')], [])
 check('offline rules has no btn', !/<(btn|opt)>/i.test(localRules))
-check('offline rules is the menu', /порядок слов/i.test(localRules) && /1\./.test(localRules))
+check(
+  'offline rules teach grammar',
+  /порядок слов/i.test(localRules) &&
+    /артикл/i.test(localRules) &&
+    /падеж/i.test(localRules) &&
+    /ich lerne/i.test(localRules) &&
+    /wir lernen/i.test(localRules) &&
+    /ihr lernt/i.test(localRules),
+)
+check('offline rules are not chat meta', !/после каждой фразы|не зубрите|будем говорить коротко/i.test(localRules))
+check('offline rules do not claim a partial präsens', !hasFalseGermanPresentClaim(localRules))
 check('offline rules is not a quiz', !isQuizItem(localRules) && !extractQuizAnswer(localRules))
 
 const fakeQuizButtons = msg('assistant', rulesAsButtons, { id: 'rules' })
@@ -80,6 +111,21 @@ check('Der Äpfel shows the exact target', /der apfel/i.test(appleGrade))
 check('Der Äpfel is almost/wrong with explanation', /почти/i.test(appleGrade) && /множествен|умлаут|форм/i.test(appleGrade))
 check('gradeGuess marks umlaut plural as almost', gradeGuess('Der Äpfel', 'der Apfel').verdict === 'almost')
 check('exact der Apfel is correct', gradeGuess('der Apfel', 'der Apfel').verdict === 'correct')
+
+const appleMcq = [
+  msg(
+    'assistant',
+    ['Как будет по-немецки «яблоко»?', '<answer>der Apfel</answer>', '<btn>der Apfel</btn>', '<btn>die Milch</btn>', '<btn>der Käse</btn>', '<btn>die Kartoffel</btn>'].join('\n'),
+    { id: 'q-apple' },
+  ),
+  msg('user', 'Der Äpfel', { id: 'a-apple' }),
+]
+const mcqGrade = gradeLastQuiz(appleMcq)
+check('mcq Der Äpfel is not full correct', !/^верно/i.test(mcqGrade.trim()))
+check('mcq Der Äpfel is almost', /почти/i.test(mcqGrade) && /der apfel/i.test(mcqGrade))
+
+const lied = polishTutorReply('Верно. Правильный ответ — der Apfel.', 'grade', 'Der Äpfel', 'de', { quizAnswer: 'der Apfel' })
+check('polish does not keep a false верно', !/^верно/i.test(lied.trim()) && /почти/i.test(lied) && /der apfel/i.test(lied))
 
 const phraseOptions = plausibleQuizOptions(
   ['Sprechen Sie Englisch?'],
@@ -116,6 +162,75 @@ if (localPhrase && /sprechen sie englisch/i.test(localPhrase)) {
 } else {
   check('local phrase quiz built or skipped food-only', true)
 }
+
+const furnitureOptions = plausibleQuizOptions(
+  ['der Tisch'],
+  ['Käse', 'Milch', 'Kartoffel', 'Reis', 'Hähnchen'],
+  'Как будет по-немецки «стол»?',
+  'de',
+)
+check('furniture options exist', furnitureOptions.length >= 2)
+check(
+  'furniture distractors are not food',
+  !furnitureOptions.some((item) => /käse|milch|kartoffel|reis|hähnchen|brot/i.test(item)),
+)
+check(
+  'furniture distractors stay nouns',
+  furnitureOptions.every((item) => /^(der|die|das)\s+\S+$/i.test(item.trim())),
+)
+
+const furnitureQuiz = [
+  'Как будет по-немецки «стол»?',
+  '<answer>der Tisch</answer>',
+  '<btn>Milch</btn>',
+  '<btn>Käse</btn>',
+  '<btn>Kartoffel</btn>',
+  '<btn>der Tisch</btn>',
+].join('\n')
+const repairedFurniture = repairQuizChoiceButtons(furnitureQuiz, 'de')
+check('llm furniture quiz drops food buttons', !/käse|milch|kartoffel|reis|hähnchen/i.test(repairedFurniture))
+check('llm furniture quiz keeps der Tisch', /der tisch/i.test(repairedFurniture))
+
+const sentenceQuiz = [
+  'Как будет по-немецки «Вы говорите по-английски?»',
+  '<answer>Sprechen Sie Englisch?</answer>',
+  '<btn>Käse</btn>',
+  '<btn>Milch</btn>',
+  '<btn>Kartoffel</btn>',
+  '<btn>Sprechen Sie Englisch?</btn>',
+].join('\n')
+const repairedSentence = repairQuizChoiceButtons(sentenceQuiz, 'de')
+check('llm sentence quiz drops food buttons', !/käse|milch|kartoffel/i.test(repairedSentence))
+check('llm sentence quiz keeps a sentence', /sprechen sie englisch/i.test(repairedSentence))
+
+const falsePresent =
+  'В настоящем времени глагол меняется только в 2‑й и 3‑й лице единственного числа, а все остальные формы остаются одинаковыми. Ich lerne. Du lernst.'
+check('false präsens claim is detected', hasFalseGermanPresentClaim(falsePresent))
+const tenseMenu = [
+  msg('assistant', '1. Порядок слов\n2. Времена\n3. Артикли', { id: 'menu' }),
+  msg('user', '2', { id: 'pick-2' }),
+]
+const tenseReply = localTutorReply('de', tenseMenu, [])
+const persons = ['ich', 'du', 'er', 'wir', 'ihr', 'sie']
+check(
+  'tense pick teaches the full paradigm',
+  persons.every((person) => new RegExp(`\\b${person}\\b`, 'i').test(tenseReply)) &&
+    /wir lernen/i.test(tenseReply) &&
+    /ihr lernt/i.test(tenseReply),
+)
+check('tense pick rejects the false claim', !hasFalseGermanPresentClaim(tenseReply))
+const repairedPresent = polishTutorReply(falsePresent, 'explain', '2', 'de')
+check('polish drops the false präsens claim', !hasFalseGermanPresentClaim(repairedPresent))
+check(
+  'polish restores wir and ihr',
+  /wir lernen/i.test(repairedPresent) && /ihr lernt/i.test(repairedPresent) && /\bich\b/i.test(repairedPresent) && /\bdu\b/i.test(repairedPresent),
+)
+const rulesSystem = buildTutorSystem('de', 'Дай правила', [msg('user', 'Дай правила')], 'explain')
+check(
+  'rules prompt asks for grammar not chat meta',
+  /word order|conjugation|articles|cases/i.test(rulesSystem) && /chat etiquette|study tips/i.test(rulesSystem),
+)
+check('präsens prompt forbids a partial paradigm', /wir lernen/i.test(rulesSystem) && /2nd and 3rd/i.test(rulesSystem))
 
 check('lesson menu itself is not a quiz item', !isQuizItem(lessonSetupReply()))
 

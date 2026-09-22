@@ -149,15 +149,46 @@ export function asksToClarifyTask(text: string) {
 
 export function wantsLessonRules(text: string) {
   const value = text.trim()
-  if (!value) return false
+  if (!value || value.length > 220) return false
   if (
-    /(дай|дайте|покажи|покажите|напиши|выдай|скинь|нужны|хочу|можно)\s+(мне\s+)?правил/i.test(value) ||
-    /правил[аоые].{0,16}(урока|занятия|языка)/i.test(value) ||
-    /^(правил[аоые])([!.?\s]|$)/i.test(value)
+    /(дай|дайте|покажи|покажите|напиши|напишите|выдай|скинь|нужны|хочу|можно|объясни|расскажи)\s+(мне\s+)?(правил\p{L}*|грамматик\p{L}*)/iu.test(
+      value,
+    ) ||
+    /правил\p{L}*.{0,24}(урока|занятия|языка)/iu.test(value) ||
+    /какие\s+(?:ещ[её]\s+)?правил/iu.test(value) ||
+    /^(правил\p{L}*|грамматик\p{L}*)([!.?\s]|$)/iu.test(value)
   ) {
     return true
   }
   return false
+}
+
+export function hasFalseGermanPresentClaim(text: string) {
+  const value = text.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]/g, '-').toLowerCase()
+  if (/только\s+в\s+2\s*-?\s*[йм]\w*\s+и\s+3/.test(value)) return true
+  if (/меняется\s+только/.test(value) && /2/.test(value) && /3/.test(value) && /лиц/.test(value)) return true
+  if (/остальн\p{L}*\s+форм\p{L}*\s+остаются\s+одинаков/u.test(value)) return true
+  if (/все\s+остальные\s+формы\s+(?:остаются|будут)\s+одинаков/.test(value)) return true
+  if (/только.{0,32}2\s*-?\s*[йм].{0,20}3\s*-?\s*[йм].{0,32}(?:единствен|лиц)/.test(value)) return true
+  return false
+}
+
+export function germanPresentParadigm() {
+  return [
+    '**Präsens** — настоящее время. Окончания разные у всех лиц.',
+    '',
+    '| Лицо | lernen |',
+    '| --- | --- |',
+    '| ich | lerne |',
+    '| du | lernst |',
+    '| er / sie / es | lernt |',
+    '| wir | lernen |',
+    '| ihr | lernt |',
+    '| sie / Sie | lernen |',
+    '',
+    '**wir lernen** и **ihr lernt** — разные формы. ich lerne, du lernst и er lernt тоже не совпадают.',
+    'Прошедшее в речи — **Perfekt**: ich habe gelernt. **Präteritum** — в рассказах: ich lernte.',
+  ].join('\n')
 }
 
 export function wantsBroadLesson(text: string) {
@@ -169,15 +200,39 @@ export function wantsBroadLesson(text: string) {
   )
 }
 
-export function lessonSetupReply() {
+export function lessonSetupReply(language: Language = 'de') {
+  if (language === 'fr') {
+    return [
+      'Правила французского языка — это грамматика, не советы как вести чат.',
+      '',
+      '1. Порядок слов. Обычное предложение: sujet + verbe + objet. Je parle français. Вопрос: Parlez-vous français?',
+      '',
+      '2. Спряжение в présent. Окончания разные у всех лиц: je parle, tu parles, il/elle parle, nous parlons, vous parlez, ils/elles parlent.',
+      '',
+      '3. Артикли. **le / la / les** — определённые, **un / une / des** — неопределённые. Перед гласной le/la → **l’**.',
+    ].join('\n')
+  }
+  if (language === 'en') {
+    return [
+      'Правила английского языка — это грамматика, не советы как вести чат.',
+      '',
+      '1. Порядок слов. Утверждение: подлежащее + глагол. I learn English. Вопрос: Do you learn English?',
+      '',
+      '2. Времена. Present simple — привычка: I learn / he learns. Present continuous — сейчас: I am learning. Past simple — факт: I learned.',
+      '',
+      '3. Артикли. **a / an** — один из многих (an перед гласным звуком). **the** — уже известный. Без артикля — общее или неисчисляемое.',
+    ].join('\n')
+  }
   return [
-    'Давайте выберем, с чего начать — без теста и без кнопок.',
+    'Правила немецкого языка — это грамматика, не советы как вести чат.',
     '',
-    '1. Порядок слов в предложении',
-    '2. Времена',
-    '3. Артикли',
+    '1. Порядок слов. В обычном предложении глагол на втором месте: Ich lerne Deutsch. Вопрос без вопросительного слова начинается с глагола: Lernst du Deutsch?',
     '',
-    'Напишите номер пункта — разберём его.',
+    '2. Спряжение в Präsens. Окончания разные у всех лиц: ich lerne, du lernst, er/sie/es lernt, wir lernen, ihr lernt, sie/Sie lernen. **wir lernen** и **ihr lernt** — разные формы.',
+    '',
+    '3. Артикли. **der** — мужской (der Tisch), **die** — женский (die Lampe), **das** — средний (das Buch). Во множественном числе почти всегда **die**.',
+    '',
+    '4. Падежи. Nominativ — кто? Akkusativ — кого? (der → den). Dativ — кому? (der → dem). Genitiv — чей?',
   ].join('\n')
 }
 
@@ -366,6 +421,7 @@ function quizLine(language: Language, direction: QuizDirection, grammar = false)
       'Lock the tense with a cue (yesterday / already / now / every morning) OR mark every form that fits with =answer.',
       `Like this:\n${sample}`,
       'Always include =answer that matches one or more options. No preamble. No HTML.',
+      'Distractors must match part of speech and category. A sentence gets other sentences. Furniture (Tisch, стол) gets other furniture, never food (Käse, Milch, Kartoffel, Reis).',
     ].join('\n')
   }
   const word = language === 'fr' ? 'infini' : language === 'de' ? 'Unendlichkeit' : 'infinity'
@@ -382,6 +438,7 @@ function quizLine(language: Language, direction: QuizDirection, grammar = false)
       : `Cue is a Russian word. Buttons are practice-language words.`,
     `Like this:\n${sample}`,
     'The word in «» must not be a button. No **Варианты**. No <html>.',
+    'Distractors must match part of speech and category. A sentence gets other sentences. Furniture (der Tisch, стол) gets other furniture, never food (Käse, Milch, Kartoffel, Reis). Food options only when the answer itself is food.',
   ].join('\n')
 }
 
@@ -453,10 +510,10 @@ export function buildTutorSystem(
       )
     } else if (wantsBroadLesson(last) || wantsLessonRules(last)) {
       lines.push(
-        'The topic is huge. Do not lecture and do not dump five chapters.',
-        'Offer 3 numbered choices in Russian (word order / tenses / articles) as a PLAIN numbered list.',
-        'Never wrap rules or menu items in [options], <btn>, or quiz markup. Do not start a vocabulary quiz.',
-        'No examples yet. Wait for a number.',
+        'They asked for grammar rules of the language, not chat etiquette.',
+        'Teach the actual grammar in Russian: word order, conjugation/tenses, articles, and cases when this language has them.',
+        'Do not answer with study tips such as "speak briefly", "repeat each phrase aloud", "do not cram word lists", or "one topic at a time".',
+        'Never wrap rules in [options], <btn>, or quiz markup. Do not start a vocabulary quiz.',
       )
     } else {
       lines.push(
@@ -470,7 +527,8 @@ export function buildTutorSystem(
     else if (pool) lines.push(`Prefer a pair from the shelf: ${pool}`)
   } else if (task === 'grade') {
     lines.push(
-      `Grade the last pick in one short Russian line (plain text, no secret). Then ONE new item in this shape only:`,
+      'Grade the last pick in one short Russian line (plain text, no secret). Umlaut or plural near-miss is never full credit: Der Äpfel ≠ der Apfel. Start with Почти and show the exact form. Never start with Верно for that.',
+      'Then ONE new item in this shape only:',
       'Student answers look like «Задание 4 ответ A: text» — A–D are the options in order. Grade that attached task.',
       quizLine(language, direction, grammarQuiz),
       'No secrets and no {{ }} in a quiz.',
@@ -485,6 +543,11 @@ export function buildTutorSystem(
     )
   }
 
+  if (language === 'de') {
+    lines.push(
+      'German Präsens: always teach the full paradigm ich, du, er/sie/es, wir, ihr, sie/Sie. Endings differ for every person. wir lernen is not ihr lernt. Never say the verb changes only in the 2nd and 3rd person singular, and never say the other forms stay the same.',
+    )
+  }
   if (options?.skillFocus) lines.push(options.skillFocus)
   if (style) lines.push(style)
   if (options?.memoryBlock?.trim()) {

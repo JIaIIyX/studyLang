@@ -89,6 +89,15 @@ export function gradeGuess(input: string, expected: string): { verdict: GradeVer
   return { verdict: 'wrong', notes }
 }
 
+/** Prefer the raw learner string when it is only a near-miss of the key. */
+export function gradeFreeText(raw: string, shown: string, expected: string) {
+  const direct = gradeGuess(raw, expected)
+  if (direct.verdict === 'almost') return direct
+  const picked = gradeGuess(shown || raw, expected)
+  if (direct.verdict === 'correct') return direct
+  return picked
+}
+
 export function joinGradeAnswers(items: string[], joiner: 'или' | 'и' | '·') {
   const clean = items.map((item) => item.trim()).filter(Boolean)
   if (!clean.length) return ''

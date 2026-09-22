@@ -1,5 +1,7 @@
-import { canonicalizeQuiz, demoteNonQuizButtons, extractQuizAnswer, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt, stripQuizMarkup } from './practiceTags'
+import { canonicalizeQuiz, demoteNonQuizButtons, extractQuizAnswer, extractQuizAnswers, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt, stripQuizMarkup } from './practiceTags'
 import { extractQuizChoices, looksLikeQuizRequest } from './quizChoices'
+import { repairQuizChoiceButtons } from './quizDistractors'
+import { almostReason, gradeGuess } from './tutorGrade'
 import { askGemini, hasGemini, isQuotaError, MODEL_TIMEOUT_HINT } from './llm'
 import { languageMeta, sectionMeta } from './languages'
 import {
@@ -7,6 +9,8 @@ import {
   compactVocabHistory,
   extractAskedPhrase,
   isSimpleSay,
+  germanPresentParadigm,
+  hasFalseGermanPresentClaim,
   lessonFromThread,
   lessonSetupReply,
   picksLessonItem,
@@ -190,9 +194,11 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
     const fallback = localVocabDraft(language, last, new Set(), prior, hasRef)
     return fallback ? vocabPreface('', fallback.title) : 'Напишите тему, например «словарь про еду».'
   }
-  if (wantsLessonRules(last) || wantsBroadLesson(last)) {
-    return lessonSetupReply()
+  if ((wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)) {
+    return lessonSetupReply(language)
   }
+  const pickedLesson = lessonPickReply(language, messages)
+  if (pickedLesson) return pickedLesson
   if (/таблиц/i.test(lower)) {
     const sample = entries.slice(0, 6)
     if (!sample.length) return 'Пока нет слов, из которых собрать таблицу.'
@@ -232,8 +238,72 @@ function findShelfHit(entries: WordEntry[], needle: string) {
   )
 }
 
+function pickedNumber(text: string) {
+  const match = text.trim().match(/^(?:давай\s+)?(?:пункт\s+|номер\s+)?(\d{1,2})\b/iu)
+  if (match) return Number(match[1])
+  if (/^перв/iu.test(text.trim())) return 1
+  if (/^втор/iu.test(text.trim())) return 2
+  if (/^трет/iu.test(text.trim())) return 3
+  if (/^четв/iu.test(text.trim())) return 4
+  return 0
+}
+
+function topicLine(text: string, n: number) {
+  if (!n) return ''
+  for (const line of text.split(/\n/)) {
+    const match = line.match(new RegExp(`^\\s*${n}\\s*[.)]?\\s+(.+)$`))
+    if (match?.[1]) return match[1].trim()
+  }
+  return ''
+}
+
+function lessonPickReply(language: Language, messages: ChatMessage[]) {
+  const last = messages.at(-1)?.content.trim() ?? ''
+  if (!picksLessonItem(last)) return ''
+  const previous =
+    [...messages]
+      .slice(0, -1)
+      .reverse()
+      .find((item) => item.role === 'assistant' && item.content.trim())?.content ?? ''
+  const line = topicLine(previous, pickedNumber(last))
+  if (!line) return ''
+  if (language === 'de' && /времен|спряж|präsens|презенс/i.test(line)) return germanPresentParadigm()
+  if (/порядок\s+слов/i.test(line)) return grammarNote(language, 'порядок слов')
+  if (/артикл/i.test(line)) return grammarNote(language, 'артикли')
+  if (/падеж/i.test(line)) return grammarNote(language, 'падежи')
+  return ''
+}
+
 function grammarNote(language: Language, text: string) {
   const t = text.toLowerCase()
+  if (/порядок\s+слов/.test(t)) {
+    if (language === 'de') {
+      return [
+        'Порядок слов в немецком предложении.',
+        '',
+        'В обычном предложении спрягаемый глагол на **втором** месте: Ich lerne Deutsch.',
+        'Вопрос без вопросительного слова начинается с глагола: Lernst du Deutsch?',
+        'В придаточном с weil или dass глагол уходит в конец: Ich lerne Deutsch, weil es mir gefällt.',
+      ].join('\n')
+    }
+    if (language === 'fr') {
+      return 'Обычный порядок: подлежащее + глагол + дополнение. Je parle français. Вопрос часто начинается с глагола: Parlez-vous français?'
+    }
+    return 'Утверждение: подлежащее + глагол. I learn English. Вопрос с do/does: Do you learn English?'
+  }
+  if (/падеж/.test(t)) {
+    if (language === 'de') {
+      return [
+        'Четыре падежа немецкого.',
+        '',
+        '**Nominativ** — кто? der Tisch.',
+        '**Akkusativ** — кого? der → den: Ich sehe den Tisch.',
+        '**Dativ** — кому? der → dem: Ich danke dem Lehrer.',
+        '**Genitiv** — чей? des Tisches.',
+      ].join('\n')
+    }
+    return ''
+  }
   if (/артикл|der die das|le la les|\ba\/an\b|(^|\s)the(\s|$)/.test(t)) {
     if (language === 'de') {
       return [
@@ -273,10 +343,8 @@ function grammarNote(language: Language, text: string) {
     if (language === 'fr') return '**être**: je suis, tu es, il/elle est, nous sommes, vous êtes, ils/elles sont.'
     return '**to be**: I am, you are, he/she/it is, we are, they are. Отрицание: I am not / he isn’t.'
   }
-  if (/времен|present simple|présent|perfekt|präterit/.test(t)) {
-    if (language === 'de') {
-      return 'Сейчас чаще всего **Präsens** (ich gehe). Прошедшее в речи — **Perfekt**: ich bin gegangen / ich habe gemacht. **Präteritum** — в рассказах: ich ging, ich war, ich hatte.'
-    }
+  if (/времен|present simple|présent|perfekt|präterit|презенс|спряж/.test(t)) {
+    if (language === 'de') return germanPresentParadigm()
     if (language === 'fr') {
       return 'Обычное настоящее — **présent**: je parle. Прошедшее факт — **passé composé**: j’ai parlé. Описание в прошлом — **imparfait**: je parlais.'
     }
@@ -335,32 +403,68 @@ async function answerWithoutModel(language: Language, messages: ChatMessage[], e
 
 export type TutorReply = { text: string; file?: VocabDraft | null; retry?: boolean }
 
+function looksLikeMetaLesson(text: string) {
+  return /после каждой фразы|будем говорить коротко|говорим коротко|не зубрите|одна тема за раз|повторяйте вслух|правила урока/i.test(
+    text,
+  )
+}
+
+function hasSubstantiveGrammar(text: string, language: Language) {
+  if (language !== 'de') return /артикл|порядок слов|present|article|présent/i.test(text)
+  const hits = [/порядок слов/i, /артикл/i, /падеж/i, /ich lerne/i, /wir lernen/i, /ihr lernt/i].filter((re) =>
+    re.test(text),
+  ).length
+  return hits >= 3 && !hasFalseGermanPresentClaim(text)
+}
+
+function repairGradeLead(text: string, guess: string, expected: string) {
+  const payload = guess.replace(/^задание\s*#?\d+\s*ответ(?:\s+[A-DА-Гa-dа-г]+)?\s*:\s*/iu, '').trim() || guess
+  const graded = gradeGuess(payload, expected)
+  if (graded.verdict !== 'almost') return text
+  const lead = /(?:^|\n)\s*(?:это\s+)?верно(?![\p{L}\p{N}])/iu
+  if (!lead.test(text)) return text
+  const line = `Почти. ${almostReason(graded.notes, payload, expected)}`
+  return text.replace(/(?:^|\n)\s*(?:это\s+)?верно(?![\p{L}\p{N}])[^.!\n]*[.!?]?/iu, (match) => {
+    return `${match.startsWith('\n') ? '\n' : ''}${line}`
+  })
+}
+
 export function polishTutorReply(
   text: string,
   task: ReturnType<typeof classifyTutorTask>,
   last: string,
   language: Language,
-  options?: { allowGreeting?: boolean },
+  options?: { allowGreeting?: boolean; quizAnswer?: string },
 ) {
   let next = canonicalizeQuiz(fixReplySpaces(text))
   if (options?.allowGreeting === false) {
     next = stripLeadingGreeting(next)
   }
+  const rulesAsk = (wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)
   if (task === 'explain' || task === 'general' || task === 'say') {
-    if (wantsLessonRules(last) || wantsBroadLesson(last)) {
+    if (rulesAsk && (looksLikeMetaLesson(next) || !hasSubstantiveGrammar(next, language))) {
+      next = lessonSetupReply(language)
+    } else if (rulesAsk) {
       if (extractQuizAnswer(next)) {
         const prose = stripQuizMarkup(next)
-        next = prose || lessonSetupReply()
+        next = prose || lessonSetupReply(language)
       } else {
         next = demoteNonQuizButtons(next)
       }
-      if (/<(btn|opt|answer)>/i.test(next)) next = stripQuizMarkup(next) || lessonSetupReply()
+      if (/<(btn|opt|answer)>/i.test(next)) next = stripQuizMarkup(next) || lessonSetupReply(language)
     } else {
       next = demoteNonQuizButtons(next)
     }
   }
+  if (language === 'de' && hasFalseGermanPresentClaim(next)) {
+    next = rulesAsk ? lessonSetupReply(language) : germanPresentParadigm()
+  }
+  if (options?.quizAnswer && (task === 'grade' || task === 'general' || task === 'explain')) {
+    next = repairGradeLead(next, last, options.quizAnswer)
+  }
   if (task === 'quiz' || task === 'grade' || extractQuizAnswer(next) || extractQuizChoices(next).length >= 2) {
     next = keepFirstExercise(next)
+    next = repairQuizChoiceButtons(next, language)
   }
   if (task === 'explain' && !wantsBroadLesson(last) && !wantsDeeper(last)) next = limitExamples(next, 1)
   return sealDanglingPrompt(next, language)
@@ -414,9 +518,11 @@ export async function replyAsTutor(
   const { quizOpen, leftQuiz } = quizState(thread)
   const task = classifyTutorTask(last, { quizOpen, leftQuiz })
 
-  if (wantsLessonRules(last) || (task === 'explain' && wantsBroadLesson(last) && !picksLessonItem(last) && !wantsDeeper(last))) {
-    return { text: lessonSetupReply() }
+  if ((wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)) {
+    return { text: lessonSetupReply(language) }
   }
+  const pickedLesson = lessonPickReply(language, thread)
+  if (pickedLesson) return { text: pickedLesson }
 
   if (!hasGemini()) {
     return { text: await answerWithoutModel(language, thread, entries) }
@@ -482,7 +588,10 @@ export async function replyAsTutor(
         task,
         last,
         language,
-        { allowGreeting: packed.allowGreeting },
+        {
+          allowGreeting: packed.allowGreeting,
+          quizAnswer: extractQuizAnswers(lastQuizMessage(thread.slice(0, -1))?.content ?? '')[0] ?? '',
+        },
       ),
     }
   } catch (error) {

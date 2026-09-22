@@ -1,5 +1,6 @@
 import type { ChatMessage } from '../types'
 import { fold, splitAnswerPicks } from './normalize'
+import { foldStrict, gradeGuess } from './tutorGrade'
 import { extractQuizAnswer } from './practiceTags'
 import { extractQuizChoices, looksLikeQuizRequest, looksLikeLeavingQuiz } from './quizChoices'
 import { messageNo } from './messageRef'
@@ -60,10 +61,12 @@ export function picksFromChoices(raw: string, choices: string[]) {
   if (choices.length) {
     const hit = parts
       .map((part) => {
-        const guess = fold(part.replace(/^[A-DА-Гa-dа-г]\s*[).:]\s*/, ''))
+        const guess = foldStrict(part.replace(/^[A-DА-Гa-dа-г]\s*[).:]\s*/, ''))
         return choices.find((choice) => {
-          const answer = fold(choice)
-          return answer === guess || (answer.length >= 8 && guess.includes(answer)) || (guess.length >= 8 && answer.includes(guess))
+          const answer = foldStrict(choice)
+          if (!guess || !answer) return false
+          if (guess === answer) return true
+          return gradeGuess(part, choice).verdict === 'correct'
         })
       })
       .filter((item): item is string => Boolean(item))

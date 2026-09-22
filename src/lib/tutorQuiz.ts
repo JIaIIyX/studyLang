@@ -5,8 +5,8 @@ import { canonicalizeQuiz, extractQuizAnswer, extractQuizAnswers, fixReplySpaces
 import { extractQuizChoices, quizQuestionText, refersToPassage, hasReadingStimulus, looksLikeLeavingQuiz, looksLikeQuizRequest } from './quizChoices'
 import { picksFromChoices } from './quizReply'
 import { fold, matchesAnswer, shuffle } from './normalize'
-import { almostReason, gradeGuess, joinGradeAnswers, type GradeVerdict } from './tutorGrade'
-import { plausibleQuizOptions } from './quizDistractors'
+import { almostReason, gradeFreeText, gradeGuess, joinGradeAnswers, type GradeVerdict } from './tutorGrade'
+import { plausibleQuizOptions, repairQuizChoiceButtons } from './quizDistractors'
 import {
   catalogDigest,
   catalogFromMessages,
@@ -532,7 +532,7 @@ export function gradeLastQuiz(messages: ChatMessage[]) {
   let verdict: GradeVerdict = 'wrong'
   let notes: string[] = []
   if (expected.length === 1) {
-    const graded = gradeGuess(joined, expected[0])
+    const graded = gradeFreeText(payload, joined, expected[0])
     verdict = graded.verdict
     notes = graded.notes
   } else {
@@ -694,7 +694,7 @@ function quizSystem(
       'If the question is about a text, quote 2–4 sentences first. Never ask about «the paragraph» without the paragraph.',
       'The question is plain text. [option] is only an answer choice, never the question, never the word options.',
       'The cue in «» must not equal <answer>. Do not quiz a language against itself.',
-      'Distractors must match the answer shape: phrases with other phrases, nouns with nouns. Never use food words (Käse, Milch, apple) as options for a greeting or sentence.',
+      'Distractors must match the answer part of speech and category: a sentence with other sentences, furniture (der Tisch, стол) with other furniture, food only when the answer is food. Never use Käse, Milch, Kartoffel, Reis, or other food lemmas for a greeting, a sentence, or furniture.',
       pool ? `Prefer a pair from the shelf: ${pool}` : '',
       options?.lesson ? `Lesson to stay on: ${options.lesson.slice(0, 420)}` : '',
       options?.lesson ? 'MUST stay on the student topic from Lesson above. Do not switch to unrelated vocabulary or another tense.' : '',
@@ -724,7 +724,7 @@ export async function improviseQuiz(
 ) {
   const first = quizSystem(language, entries, wish, catalog, options)
   try {
-    const raw = await askQuizDraft(first.system, wish, first.grammar, 0.85)
+    const raw = repairQuizChoiceButtons(await askQuizDraft(first.system, wish, first.grammar, 0.85), language)
     if (isValidImprovisedQuiz(raw) && !quizRepeatsCatalog(raw, catalog)) return raw
     if (isValidImprovisedQuiz(raw) && quizRepeatsCatalog(raw, catalog)) {
       const used = keysFromQuiz(raw)
@@ -732,7 +732,7 @@ export async function improviseQuiz(
         ? `Rejected a repeat. Do not use answer ${used.answers.join(', ') || 'that'} or frame ${used.frames.join(' | ') || used.cues.join(' | ') || 'that'}.`
         : 'Rejected a repeat. Invent a different answer and sentence.'
       const retry = quizSystem(language, entries, wish, catalog, options, extra)
-      const again = await askQuizDraft(retry.system, wish, retry.grammar, 0.95)
+      const again = repairQuizChoiceButtons(await askQuizDraft(retry.system, wish, retry.grammar, 0.95), language)
       if (isValidImprovisedQuiz(again) && !quizRepeatsCatalog(again, catalog)) return again
     }
   } catch {
