@@ -174,7 +174,7 @@ export function WordsPage() {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Название набора"
-          className="h-11 min-w-[220px] flex-1 rounded-xl border border-line bg-surface px-4 outline-none focus:ring-2 focus:ring-terracotta/30"
+          className="h-11 w-full min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 outline-none focus:ring-2 focus:ring-terracotta/30 sm:min-w-[220px] sm:px-4"
         />
         <button type="submit" className="flex h-11 items-center gap-2 rounded-xl bg-walnut px-4 text-sm font-semibold text-cream">
           <Plus className="h-4 w-4" />
@@ -194,7 +194,7 @@ export function WordsPage() {
           value={groupName}
           onChange={(event) => setGroupName(event.target.value)}
           placeholder="Название группы, например «Кафе»"
-          className="h-11 min-w-[220px] flex-1 rounded-xl border border-line bg-surface px-4 outline-none focus:ring-2 focus:ring-terracotta/30"
+          className="h-11 w-full min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 outline-none focus:ring-2 focus:ring-terracotta/30 sm:min-w-[220px] sm:px-4"
         />
         <button type="submit" className="flex h-11 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm">
           <Plus className="h-4 w-4" />

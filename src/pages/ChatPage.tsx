@@ -477,12 +477,12 @@ export function ChatPage() {
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!chat || tutorMessages.length === 0 ? (
-            <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-3 pb-8 pt-4 sm:px-4 sm:pt-6">
-            <div className="rise-in mb-8 sm:mb-10">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-terracotta">
+            <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-start px-3 pb-6 pt-3 sm:justify-center sm:px-4 sm:pb-8 sm:pt-6">
+            <div className="rise-in mb-5 sm:mb-10">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta sm:tracking-[0.22em]">
                 {meta.native} · мастерская
               </p>
-              <h1 className="font-display mt-2 text-[2.35rem] italic leading-[1.05] sm:text-5xl md:text-6xl">
+              <h1 className="font-display mt-2 text-3xl italic leading-tight sm:text-5xl md:text-6xl">
                 {meta.greet}, {displayName}.
               </h1>
               <p className="mt-4 max-w-md text-muted">

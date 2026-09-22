@@ -60,45 +60,45 @@ function HomeworkList() {
   }
 
   return (
-    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-4 pb-16 pt-2 md:px-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-terracotta">тетрадь</p>
-          <h1 className="font-display mt-1 text-4xl italic">Домашняя работа</h1>
-          <p className="mt-2 max-w-xl text-muted">
+    <div className="mx-auto h-full max-w-5xl overflow-x-hidden overflow-y-auto px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:pb-16 md:px-8">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta sm:tracking-[0.2em]">тетрадь</p>
+          <h1 className="font-display mt-1 text-3xl italic sm:text-4xl">Домашняя работа</h1>
+          <p className="mt-2 max-w-xl text-sm text-muted sm:text-base">
             Тетрадь по {(lang.prep ?? lang.label.toLowerCase())}: перевод абзаца, слова, с русского на язык, значения, история по
             точкам, пары и пять строк. После сдачи — разбор и новое задание на слабые места.
           </p>
         </div>
         <form
-          className="flex min-w-0 flex-1 flex-wrap items-end justify-end gap-2"
+          className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:max-w-sm sm:flex-1"
           onSubmit={(event) => {
             event.preventDefault()
             void issue()
           }}
         >
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-terracotta px-4 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" />
-            {busy ? 'Составляет…' : 'Выдать задание'}
-          </button>
           <input
             value={wish}
             onChange={(event) => setWish(event.target.value)}
             maxLength={160}
             placeholder="Пожелание к заданию"
-            className="h-11 min-w-[16rem] flex-1 rounded-xl border border-line bg-surface px-4 outline-none focus:ring-2 focus:ring-terracotta/30 sm:max-w-sm"
+            className="h-11 w-full min-w-0 rounded-xl border border-line bg-surface px-3 outline-none focus:ring-2 focus:ring-terracotta/30 sm:px-4"
           />
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-terracotta px-4 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" />
+            {busy ? 'Составляет…' : 'Выдать задание'}
+          </button>
         </form>
       </div>
 
       {error && <div className="mb-4 rounded-2xl bg-[#f6e4d8] px-4 py-3 text-sm text-terracotta">{error}</div>}
 
       {sheets.length === 0 && (
-        <div className="rounded-2xl border border-line bg-surface px-5 py-10 text-center">
+        <div className="rounded-2xl border border-line bg-surface px-4 py-8 text-center sm:px-5 sm:py-10">
           <NotebookPen className="mx-auto h-8 w-8 text-terracotta" />
           <p className="font-display mt-3 text-2xl italic">Тетрадь пока пустая</p>
           <p className="mt-2 text-muted">Нажмите «Выдать задание» — репетитор соберёт работу из слов с полки.</p>
@@ -109,7 +109,7 @@ function HomeworkList() {
         {sheets.map((sheet) => {
           const score = sheetScore(sheet)
           return (
-            <article key={sheet.id} className="flex flex-col rounded-2xl border border-line bg-surface p-5">
+            <article key={sheet.id} className="flex flex-col rounded-2xl border border-line bg-surface p-4 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <Link to={`/homework/${sheet.id}`} className="min-w-0 flex-1">
                   <p className="font-display text-xl italic">{sheet.title}</p>
@@ -240,8 +240,8 @@ function HomeworkSheetView({ sheetId }: { sheetId: string }) {
   }
 
   return (
-    <div className="mx-auto h-full max-w-3xl overflow-y-auto px-4 pb-16 pt-2 md:px-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto h-full max-w-3xl overflow-x-hidden overflow-y-auto px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:pb-16 md:px-8">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-5 sm:gap-3">
         <Link to="/homework" className="text-sm text-muted hover:text-ink">
           ← к тетрадям
         </Link>
@@ -254,9 +254,9 @@ function HomeworkSheetView({ sheetId }: { sheetId: string }) {
         </button>
       </div>
 
-      <div className="paper-sheet margin-rule rounded-2xl border border-line px-5 py-6 pl-16 md:px-8 md:py-8 md:pl-20">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-terracotta">домашняя работа</p>
-        <h1 className="font-display mt-1 text-3xl italic">{sheet.title}</h1>
+      <div className="paper-sheet margin-rule rounded-2xl border border-line px-3 py-4 sm:px-5 sm:py-6 sm:pl-16 md:px-8 md:py-8 md:pl-20">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-terracotta sm:tracking-[0.18em]">домашняя работа</p>
+        <h1 className="font-display mt-1 text-2xl italic sm:text-3xl">{sheet.title}</h1>
         <p className="mt-2 text-sm text-muted">
           {lang.label} · {sheet.topic} · {date}
         </p>
@@ -264,12 +264,12 @@ function HomeworkSheetView({ sheetId }: { sheetId: string }) {
           <TagChips tags={sheetTags(sheet)} />
         </div>
         <p className="mt-1 text-sm text-muted">Ученик: {displayName}</p>
-        <aside className="mt-5 rounded-2xl border border-dashed border-line bg-surface/80 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Задание учителя</p>
-          <p className="font-study mt-1 text-lg leading-7 italic text-ink">{sheet.intro}</p>
+        <aside className="mt-4 rounded-2xl border border-dashed border-line bg-surface/80 px-3 py-2.5 sm:mt-5 sm:px-4 sm:py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted sm:tracking-[0.16em]">Задание учителя</p>
+          <p className="font-study mt-1 text-base leading-6 italic text-ink sm:text-lg sm:leading-7">{sheet.intro}</p>
         </aside>
 
-        <ol className="mt-8 space-y-6">
+        <ol className="mt-4 space-y-4 sm:mt-8 sm:space-y-6">
           {sheet.tasks.map((task, index) => (
             <TaskCard
               key={task.id}
@@ -283,7 +283,7 @@ function HomeworkSheetView({ sheetId }: { sheetId: string }) {
           ))}
         </ol>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line/70 pt-5">
+        <div className="mt-5 flex flex-col gap-3 border-t border-line/70 pt-4 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:pt-5">
           <p className="text-sm text-muted">
             {score.checked === 0
               ? `Заданий: ${score.total}`
@@ -291,12 +291,12 @@ function HomeworkSheetView({ sheetId }: { sheetId: string }) {
             {sheet.doneAt ? ' · тетрадь сдана' : ''}
             {reviewError ? ` · ${reviewError}` : ''}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
             {sheet.doneAt ? (
               <button
                 type="button"
                 onClick={() => setAnalysisOpen(true)}
-                className="h-11 rounded-xl border border-line bg-surface px-5 text-sm font-semibold"
+                className="h-11 rounded-xl border border-line bg-surface px-4 text-sm font-semibold sm:px-5"
               >
                 Анализ результатов
               </button>
@@ -305,7 +305,7 @@ function HomeworkSheetView({ sheetId }: { sheetId: string }) {
               type="button"
               onClick={() => void reviewAll()}
               disabled={reviewBusy}
-              className="h-11 rounded-xl bg-terracotta px-5 text-sm font-semibold text-white disabled:opacity-60"
+              className="h-11 rounded-xl bg-terracotta px-4 text-sm font-semibold text-white disabled:opacity-60 sm:px-5"
             >
               {reviewBusy ? 'Смотрит ответы…' : 'Сдать тетрадь'}
             </button>
@@ -337,12 +337,12 @@ function exampleLabel(task: HomeworkTask) {
 function StudyLine({ text, long = false }: { text: string; long?: boolean }) {
   const parts = text.split(/(__+|…{2,}|\.{3,}|\[[.\s_]*\])/g)
   return (
-    <p className={`font-study whitespace-pre-wrap ${long ? 'text-lg leading-8' : 'text-2xl leading-10'}`}>
+    <p className={`font-study whitespace-pre-wrap ${long ? 'text-base leading-7 sm:text-lg sm:leading-8' : 'text-lg leading-7 sm:text-2xl sm:leading-10'}`}>
       {parts.map((part, index) =>
         /^(__+|…{2,}|\.{3,}|\[[.\s_]*\])$/.test(part) ? (
           <span
             key={index}
-            className="mx-1 inline-block min-w-[4.75rem] border-b-2 border-terracotta align-baseline"
+            className="mx-1 inline-block min-w-[3rem] border-b-2 border-terracotta align-baseline sm:min-w-[4.75rem]"
             aria-hidden
           />
         ) : (
@@ -376,13 +376,13 @@ function ErrorAnalysisWindow({
   const score = sheetScore(sheet)
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-labelledby="error-analysis-title"
-        className="max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-xl md:p-6"
+        className="max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-2xl border border-line bg-surface p-4 shadow-xl sm:p-5 md:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -482,7 +482,7 @@ function TaskCard({
   const status = markLabel(mark)
   const hint = taskHint(task)
   return (
-    <li className="rounded-2xl border border-line bg-surface/90 p-4 md:p-5">
+    <li className="rounded-2xl border border-line bg-surface/90 p-3 sm:p-4 md:p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-terracotta">
         Задание {index + 1}. {kindLabel(task.kind)}
       </p>
@@ -494,10 +494,10 @@ function TaskCard({
 
       {task.text && task.kind !== 'words' && task.kind !== 'match' && task.kind !== 'order' && task.kind !== 'rows' && (
         <figure className="mt-3 overflow-hidden rounded-2xl border border-line bg-canvas">
-          <figcaption className="border-b border-line px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta">
+          <figcaption className="border-b border-line px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-terracotta sm:px-4 sm:py-2 sm:tracking-[0.16em]">
             {exampleLabel(task)}
           </figcaption>
-          <div className="px-4 py-4">
+          <div className="px-3 py-3 sm:px-4 sm:py-4">
             <StudyLine text={task.text} long={isLongTask(task)} />
           </div>
         </figure>
@@ -522,7 +522,7 @@ function TaskCard({
                 key={option}
                 type="button"
                 onClick={() => onDraft(option)}
-                className={`rounded-xl border px-4 py-3 text-left font-study text-lg leading-7 transition ${
+                className={`rounded-xl border px-3 py-2.5 text-left font-study text-base leading-6 transition sm:px-4 sm:py-3 sm:text-lg sm:leading-7 ${
                   active ? 'border-terracotta bg-canvas' : 'border-line bg-surface hover:border-terracotta/35 hover:bg-hover'
                 }`}
               >
@@ -537,14 +537,14 @@ function TaskCard({
           rows={task.kind === 'passage' || isLongTask(task) ? 8 : 3}
           onChange={(event) => onDraft(event.target.value)}
           placeholder={task.kind === 'passage' ? 'Перевод абзаца' : 'Пишите здесь'}
-          className="font-print mt-4 w-full resize-none rounded-xl border border-line bg-canvas px-4 py-3 outline-none focus:ring-2 focus:ring-terracotta/30"
+          className="font-print mt-3 w-full resize-none rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-terracotta/30 sm:mt-4 sm:px-4 sm:py-3"
         />
       ) : (
         <input
           value={draft}
           onChange={(event) => onDraft(event.target.value)}
           placeholder="Ответ"
-          className="font-print mt-4 h-12 w-full rounded-xl border border-line bg-canvas px-4 outline-none focus:ring-2 focus:ring-terracotta/30"
+          className="font-print mt-3 h-11 w-full rounded-xl border border-line bg-canvas px-3 text-sm outline-none focus:ring-2 focus:ring-terracotta/30 sm:mt-4 sm:h-12 sm:px-4"
         />
       )}
 

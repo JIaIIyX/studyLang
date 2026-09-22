@@ -44,7 +44,7 @@ function CardsSession({ fileId }: { fileId: string }) {
   }
 
   return (
-    <div className="mx-auto h-full max-w-3xl overflow-y-auto px-4 pb-16 pt-2">
+    <div className="mx-auto h-full max-w-3xl overflow-y-auto px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:pb-16">
       <StudyHeader kind="cards" item={item} file={file} index={index} />
       <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-surface">
         <div className="progress-bar h-full" style={{ width: `${(known / remaining) * 100}%` }} />
@@ -62,16 +62,16 @@ function CardsSession({ fileId }: { fileId: string }) {
         }}
         className="block w-full [perspective:1200px]"
       >
-        <div className={`card-3d relative min-h-[340px] ${flipped ? 'is-flipped' : ''}`}>
+        <div className={`card-3d relative min-h-[220px] sm:min-h-[340px] ${flipped ? 'is-flipped' : ''}`}>
           <div className="card-face absolute inset-0 overflow-hidden rounded-2xl border border-line bg-surface">
             <div className="flex h-full flex-col">
-              <section className="flex flex-1 flex-col items-center justify-center px-6">
+              <section className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6">
                 {entry.heading && (
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{entry.heading}</p>
                 )}
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta">Слово</p>
                 <div className="mt-3 flex items-center justify-center gap-2">
-                  <p className="font-study text-center text-6xl font-semibold leading-tight">{stripMarks(entry.term)}</p>
+                  <p className="font-study text-center text-4xl font-semibold leading-tight sm:text-6xl">{stripMarks(entry.term)}</p>
                   <SpeakButton text={stripMarks(entry.term)} lang={file.language} />
                 </div>
                 <p className="mt-4 text-sm text-muted">Нажмите, чтобы перевернуть</p>
@@ -89,7 +89,7 @@ function CardsSession({ fileId }: { fileId: string }) {
               <section className="flex flex-1 flex-col items-center justify-center px-6 py-8">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta">Перевод</p>
                 <div className="mt-3 flex items-center justify-center gap-2">
-                  <p className="font-study text-center text-5xl font-semibold leading-tight">
+                  <p className="font-study text-center text-3xl font-semibold leading-tight sm:text-5xl">
                     {stripMarks(entry.translation ?? '') || 'Перевод появится позже'}
                   </p>
                   <SpeakButton text={stripMarks(entry.translation ?? '')} lang="ru" />

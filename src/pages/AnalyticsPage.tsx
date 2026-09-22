@@ -37,11 +37,11 @@ export function AnalyticsPage() {
   }, [rows, catalogById, shelf, shelfProgress])
 
   return (
-    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-4 pb-16 pt-2 md:px-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-terracotta">сводка</p>
-          <h1 className="font-display mt-1 text-4xl italic">Аналитика</h1>
+    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:pb-16 md:px-8">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta sm:tracking-[0.2em]">сводка</p>
+          <h1 className="font-display mt-1 text-3xl italic sm:text-4xl">Аналитика</h1>
           <p className="mt-2 max-w-xl text-muted">
             Три очка — слова, смысл в тексте и грамматика. Репетитор и тетрадь смотрят на слабое место.
           </p>
@@ -50,14 +50,14 @@ export function AnalyticsPage() {
           type="button"
           disabled={busy}
           onClick={() => void refresh()}
-          className="flex h-11 items-center rounded-xl bg-terracotta px-4 text-sm font-semibold text-white disabled:opacity-60"
+          className="flex h-11 w-full items-center justify-center rounded-xl bg-terracotta px-4 text-sm font-semibold text-white disabled:opacity-60 sm:w-auto"
         >
           {busy ? 'Обновляет…' : 'Обновить разбор'}
         </button>
       </div>
       {error && <div className="mb-4 rounded-2xl bg-[#f6e4d8] px-4 py-3 text-sm text-terracotta">{error}</div>}
 
-      <section className="mb-6 rounded-2xl border border-line bg-surface p-5">
+      <section className="mb-6 rounded-2xl border border-line bg-surface p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta">Понимание</p>
@@ -78,7 +78,7 @@ export function AnalyticsPage() {
         <Stat label="Коллекций" value={overall.collections} note={lang.label} />
       </section>
 
-      <section className="mb-6 rounded-2xl border border-line bg-surface p-5">
+      <section className="mb-6 rounded-2xl border border-line bg-surface p-4 sm:p-5">
         <div className="mb-1 flex justify-between text-[11px] text-muted">
           <span>Общая оценка — минимум среди игр</span>
           <span>{ratio}%</span>
@@ -97,7 +97,7 @@ export function AnalyticsPage() {
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-line bg-surface p-5">
+      <section className="mb-6 rounded-2xl border border-line bg-surface p-4 sm:p-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-terracotta">Анализ</p>
         <p className="mt-2 text-lg text-ink">{overallAdvice.insight}</p>
         <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">План</p>
@@ -120,7 +120,7 @@ export function AnalyticsPage() {
             showLooseTitle={shelf.groups.length > 0}
           >
             {section.rows.map((row) => (
-                <article key={row.id} className="rounded-2xl border border-line bg-surface p-5">
+                <article key={row.id} className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
                   <p className="font-display text-xl italic">{row.title}</p>
                   <p className="mt-1 text-xs text-muted">
                     Общее {row.known} из {row.total} · повторю {row.review}
