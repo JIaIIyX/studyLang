@@ -237,6 +237,30 @@ export function ChatPage() {
       return
     }
 
+    if (wantsAduso(content) || wantsAduso(posted)) {
+      setBusy(true)
+      try {
+        const text = adusoLesson(threadMentionsNebensatz(nextHistory))
+        if (gen !== sendGen.current) return
+        appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
+      } finally {
+        if (gen === sendGen.current) setBusy(false)
+      }
+      return
+    }
+
+    if (wantsNebensatz(content) || wantsNebensatz(posted)) {
+      setBusy(true)
+      try {
+        const text = nebensatzLesson(nextHistory.slice(0, -1).map((item) => item.content).join('\n'))
+        if (gen !== sendGen.current) return
+        appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
+      } finally {
+        if (gen === sendGen.current) setBusy(false)
+      }
+      return
+    }
+
     const homework = await loadHomework()
     if (homework.wantsHomework(content)) {
       setBusy(true)
@@ -259,29 +283,8 @@ export function ChatPage() {
       return
     }
 
-    if (wantsAduso(posted)) {
-      setBusy(true)
-      try {
-        const text = adusoLesson(threadMentionsNebensatz(nextHistory))
-        if (gen !== sendGen.current) return
-        appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
-      } finally {
-        if (gen === sendGen.current) setBusy(false)
-      }
-      return
-    }
 
-    if (wantsNebensatz(posted)) {
-      setBusy(true)
-      try {
-        const text = nebensatzLesson(nextHistory.slice(0, -1).map((item) => item.content).join('\n'))
-        if (gen !== sendGen.current) return
-        appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
-      } finally {
-        if (gen === sendGen.current) setBusy(false)
-      }
-      return
-    }
+
 
     if (wantsVocabList(nextHistory) || isReferentialVocabWish(posted) || (refIds.length > 0 && /слов|фраз|словар|добав/i.test(posted))) {
       await postVocab(id, nextHistory, gen)
