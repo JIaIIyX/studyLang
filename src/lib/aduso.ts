@@ -1,8 +1,21 @@
-﻿import type { ChatMessage } from '../types'
+import type { ChatMessage } from '../types'
+
+const ADUSO_TOKEN = /(?:^|[^\p{L}\p{N}])(?:adus[oe]|адус[оаеуы])(?![\p{L}\p{N}])/iu
 
 export function wantsAduso(text: string) {
-  const t = text.normalize('NFC')
-  return /\badus[oe]\b/i.test(t) || /адус[оаеуы]/i.test(t)
+  return ADUSO_TOKEN.test(text.normalize('NFC'))
+}
+
+export function asksWhatAdusoMeans(text: string) {
+  return (
+    /(?:что\s+(?:вы|ты)\s+имеете\s+в\s+виду|что\s+(?:такое|значит)|what\s+(?:do\s+you|does\s+\w+\s+)?mean|уточн(?:ите|и))/iu.test(
+      text,
+    ) && /adus|адус/i.test(text)
+  )
+}
+
+export function adusoReplyNeedsLesson(text: string) {
+  return asksWhatAdusoMeans(text) || looksLikeAdverbTaxonomy(text) || !adusoLessonOk(text)
 }
 
 export function wantsNebensatz(text: string) {
@@ -90,4 +103,4 @@ export function nebensatzLesson(prior = '') {
 }
 
 export const ADUSO_GLOSSARY =
-  'Glossary: ADUSO / адусо / адузо is NOT adverbs and NOT Manner/Zeit/Ort. It is five coordinating conjunctions: aber (but), denn (because; verb stays 2nd, unlike weil), und (and), sondern (but rather, only after nicht/kein), oder (or). They take position 0 and keep verb-second in BOTH main clauses. After weil/dass/wenn/ob the verb goes to the end. Never answer ADUSO with Adverbien.'
+  'Glossary: ADUSO / ADUSE / адусо / адусе / адузо is NOT adverbs and NOT Manner/Zeit/Ort. It is five coordinating conjunctions: aber (but), denn (because; verb stays 2nd, unlike weil), und (and), sondern (but rather, only after nicht/kein), oder (or). They take position 0 and keep verb-second in BOTH main clauses. After weil/dass/wenn/ob the verb goes to the end. Never ask what ADUSO means. Never answer ADUSO with Adverbien.'

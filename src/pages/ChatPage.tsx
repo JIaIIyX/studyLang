@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Bookmark, Gamepad2, MessagesSquare, RotateCcw, X } from 'lucide-react'
 import { ChatComposer, type ChatComposerHandle } from '../components/chat/ChatComposer'
@@ -13,8 +13,8 @@ import { MODEL_TIMEOUT_HINT } from '../lib/llm'
 import { languageMeta } from '../lib/languages'
 import { messageAnchor, messageNo, previewMessage } from '../lib/messageRef'
 import { getSnapshot } from '../lib/persist'
+import { adusoLesson, nebensatzLesson, threadMentionsNebensatz, wantsAduso, wantsNebensatz } from '../lib/aduso'
 import { forgetTutorLibrary, makeVocabReply, replyAsTutor, wantsSpokenDialogue, wantsVocabList } from '../lib/tutor'
-import { adusoLesson, threadMentionsNebensatz, wantsAduso } from '../lib/aduso'
 import { isReferentialVocabWish } from '../lib/vocabFromContext'
 import { bindQuizAnswer } from '../lib/quizReply'
 import { extractQuizAnswer } from '../lib/practiceTags'
@@ -263,6 +263,18 @@ export function ChatPage() {
       setBusy(true)
       try {
         const text = adusoLesson(threadMentionsNebensatz(nextHistory))
+        if (gen !== sendGen.current) return
+        appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
+      } finally {
+        if (gen === sendGen.current) setBusy(false)
+      }
+      return
+    }
+
+    if (wantsNebensatz(posted)) {
+      setBusy(true)
+      try {
+        const text = nebensatzLesson(nextHistory.slice(0, -1).map((item) => item.content).join('\n'))
         if (gen !== sendGen.current) return
         appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
       } finally {
