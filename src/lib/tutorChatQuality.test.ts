@@ -388,6 +388,31 @@ check('ru UI language is not a shelf table', !/käse|словарик с пол�
 const aduse = localTutorReply('en', [msg('user', 'ОБЬЯСНИ ЩА ПРАВИЛА ADUSE')], [])
 expectAduso('ADUSE typo', aduse)
 check('ADUSE is detected', wantsAduso('ADUSE') && wantsAduso('адусе') && wantsAduso('адусы') && !wantsAduso('caduso'))
+
+const productionAdusoPhrases = [
+  'расскажи о правилах aduso',
+  'я пршу дать мне правила aduso',
+  'дай таблицу ADUSO',
+  'ADUSE',
+] as const
+for (const phrase of productionAdusoPhrases) {
+  check(`production phrase detected: ${phrase}`, wantsAduso(phrase))
+  const lesson = localTutorReply('de', [msg('user', phrase)], [])
+  expectAduso(`production lesson: ${phrase}`, lesson)
+  check(
+    `production phrase is not grammar menu: ${phrase}`,
+    !/Давайте выберем|1\.\s*Порядок слов/i.test(lesson),
+  )
+}
+const prshuClarify = polishTutorReply(
+  'Что вы имеете в виду под ADUSO?',
+  'general',
+  'я пршу дать мне правила aduso',
+  'en',
+)
+expectAduso('production typo clarification becomes ADUSO lesson', prshuClarify)
+check('production typo clarification is not a question back', !/имеете в виду|что такое aduso/i.test(prshuClarify))
+
 const adusoTableWish = [msg('user', 'дай таблицу ADUSO')]
 check('дай таблицу ADUSO is not a vocab wish', !wantsVocabList(adusoTableWish))
 expectAduso('дай таблицу ADUSO', localTutorReply('en', adusoTableWish, [{ id: 'k', term: 'Käse', translation: 'сыр' }]))

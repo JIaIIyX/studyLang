@@ -283,9 +283,6 @@ export function ChatPage() {
       return
     }
 
-
-
-
     if (wantsVocabList(nextHistory) || isReferentialVocabWish(posted) || (refIds.length > 0 && /слов|фраз|словар|добав/i.test(posted))) {
       await postVocab(id, nextHistory, gen)
       return

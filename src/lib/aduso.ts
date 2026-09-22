@@ -1,8 +1,9 @@
 import type { ChatMessage } from '../types'
 
 export function wantsAduso(text: string) {
-  const t = text.normalize("NFC").toLowerCase()
-  return /(?:^|[^a-z\u0430-\u044f\u04510-9_])(?:adus[oe]|\u0430\u0434\u0443\u0441[\u043e\u0430\u0435\u0443\u044b])(?![a-z\u0430-\u044f\u04510-9_])/i.test(t)
+  const t = text.normalize('NFC').toLowerCase()
+  // Letter/digit boundaries only — no \p{L}/\p{N} (fragile in some builds).
+  return /(?:^|[^a-z0-9а-яё])(?:adus[oe]|адус[оаеуы])(?![a-z0-9а-яё])/.test(t)
 }
 
 export function asksWhatAdusoMeans(text: string) {
