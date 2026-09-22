@@ -1,7 +1,8 @@
-import type { ChatMessage } from '../types'
+﻿import type { ChatMessage } from '../types'
 
 export function wantsAduso(text: string) {
-  return /aduso|адусо|адузо/i.test(text)
+  const t = text.normalize('NFC')
+  return /\badus[oe]\b/i.test(t) || /адус[оаеуы]/i.test(t)
 }
 
 export function wantsNebensatz(text: string) {

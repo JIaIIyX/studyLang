@@ -1,4 +1,4 @@
-import { adusoLesson, nebensatzLesson, threadMentionsNebensatz, wantsAduso, wantsNebensatz } from './aduso'
+﻿import { adusoLesson, nebensatzLesson, threadMentionsNebensatz, wantsAduso, wantsNebensatz } from './aduso'
 import { canonicalizeQuiz, demoteNonQuizButtons, extractQuizAnswer, extractQuizAnswers, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt, stripQuizMarkup } from './practiceTags'
 import { extractQuizChoices, looksLikeQuizRequest } from './quizChoices'
 import { repairQuizChoiceButtons } from './quizDistractors'
@@ -195,10 +195,10 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
     const fallback = localVocabDraft(language, last, new Set(), prior, hasRef)
     return fallback ? vocabPreface('', fallback.title) : 'Напишите тему, например «словарь про еду».'
   }
-  if (language === 'de' && wantsAduso(last)) {
+  if (wantsAduso(last)) {
     return adusoLesson(threadMentionsNebensatz(messages))
   }
-  if (language === 'de' && wantsNebensatz(last)) {
+  if (wantsNebensatz(last) && (language === 'de' || /nebensatz|придаточ|weil|dass/i.test(last))) {
     return nebensatzLesson(messages.slice(0, -1).map((item) => item.content).join('\n'))
   }
   if ((wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)) {
@@ -461,7 +461,7 @@ export function polishTutorReply(
     !wantsDeeper(last) &&
     !wantsAduso(last) &&
     !wantsNebensatz(last)
-  if (language === 'de' && wantsAduso(last)) {
+  if (wantsAduso(last)) {
     next = adusoLesson(Boolean(options?.nebensatz))
   } else if (language === 'de' && wantsNebensatz(last) && !/weil|придаточн|конец/i.test(next)) {
     next = nebensatzLesson()
@@ -543,10 +543,10 @@ export async function replyAsTutor(
   const { quizOpen, leftQuiz } = quizState(thread)
   const task = classifyTutorTask(last, { quizOpen, leftQuiz })
 
-  if (language === 'de' && wantsAduso(last)) {
+  if (wantsAduso(last)) {
     return { text: adusoLesson(threadMentionsNebensatz(thread)) }
   }
-  if (language === 'de' && wantsNebensatz(last)) {
+  if (wantsNebensatz(last) && (language === 'de' || /nebensatz|придаточ|weil|dass/i.test(last))) {
     return { text: nebensatzLesson(thread.slice(0, -1).map((item) => item.content).join('\n')) }
   }
   if ((wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)) {
