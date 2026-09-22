@@ -13,6 +13,7 @@ import { MODEL_TIMEOUT_HINT } from '../lib/llm'
 import { languageMeta } from '../lib/languages'
 import { messageAnchor, messageNo, previewMessage } from '../lib/messageRef'
 import { getSnapshot } from '../lib/persist'
+import { wantsAduso, wantsNebensatz } from '../lib/aduso'
 import { forgetTutorLibrary, makeVocabReply, replyAsTutor, wantsSpokenDialogue, wantsVocabList } from '../lib/tutor'
 import { isReferentialVocabWish } from '../lib/vocabFromContext'
 import { bindQuizAnswer } from '../lib/quizReply'
@@ -258,7 +259,11 @@ export function ChatPage() {
       return
     }
 
-    if (wantsVocabList(nextHistory) || isReferentialVocabWish(posted) || (refIds.length > 0 && /слов|фраз|словар|добав/i.test(posted))) {
+    if (
+      !wantsAduso(posted) &&
+      !wantsNebensatz(posted) &&
+      (wantsVocabList(nextHistory) || isReferentialVocabWish(posted) || (refIds.length > 0 && /слов|фраз|словар|добав/i.test(posted)))
+    ) {
       await postVocab(id, nextHistory, gen)
       return
     }

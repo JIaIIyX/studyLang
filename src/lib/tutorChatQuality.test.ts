@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import type { ChatMessage, WordEntry } from '../types'
-import { adusoLessonOk, lessonIsEffective, looksLikeAdverbTaxonomy } from './aduso'
+import type { ChatMessage, Language, WordEntry } from '../types'
+import { adusoLessonOk, lessonIsEffective, looksLikeAdverbTaxonomy, wantsAduso } from './aduso'
 import { gradeBubbleParts, MistakeHint } from '../components/chat/MistakeHint'
 import {
   buildTutorSystem,
@@ -382,6 +382,24 @@ const adusoAngry = polishTutorReply('Adverbien: Manner, Zeit, Ort und Art und We
   nebensatz: true,
 })
 expectAduso('polished angry ADUSO', adusoAngry, true)
+const adusoRuUi = localTutorReply('ru' as Language, [msg('user', 'ADUSO')], [{ id: 'k', term: 'Käse', translation: 'сыр' }])
+expectAduso('ru UI language still teaches ADUSO', adusoRuUi)
+check('ru UI language is not a shelf table', !/käse|словарик с полки/i.test(adusoRuUi))
+const aduse = localTutorReply('en', [msg('user', 'ОБЬЯСНИ ЩА ПРАВИЛА ADUSE')], [])
+expectAduso('ADUSE typo', aduse)
+check('ADUSE is detected', wantsAduso('ADUSE') && wantsAduso('адусе') && wantsAduso('адусы') && !wantsAduso('caduso'))
+const adusoTableWish = [msg('user', 'дай таблицу ADUSO')]
+check('дай таблицу ADUSO is not a vocab wish', !wantsVocabList(adusoTableWish))
+expectAduso('дай таблицу ADUSO', localTutorReply('en', adusoTableWish, [{ id: 'k', term: 'Käse', translation: 'сыр' }]))
+const vocabSteal = [
+  msg('assistant', 'набор', { fileDraft: { title: 'Еда', kind: 'words', entries: [{ term: 'Käse', translation: 'сыр' }] } }),
+  msg('user', 'ещё ADUSE'),
+]
+check('ADUSO follow-up is not a vocab list', !wantsVocabList(vocabSteal))
+expectAduso('vocab list does not win over ADUSO', localTutorReply('ru' as Language, vocabSteal, []))
+const clarified = polishTutorReply('Что вы имеете в виду под ADUSO?', 'general', 'ADUSO блять', 'en')
+expectAduso('clarification becomes the ADUSO lesson', clarified)
+check('clarification is not a question back', !/имеете в виду/i.test(clarified))
 const adusoPrompt = buildTutorSystem('de', 'Дай таблицу всех aduso', [msg('user', 'Дай таблицу всех aduso')], 'explain')
 check('prompt forbids mapping ADUSO to adverbs', /NOT adverbs/i.test(adusoPrompt) && /aber/i.test(adusoPrompt) && /sondern/i.test(adusoPrompt))
 
