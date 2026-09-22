@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { ChatMessage, WordEntry } from '../types'
+import { adusoLessonOk, lessonIsEffective, looksLikeAdverbTaxonomy } from './aduso'
 import { gradeBubbleParts, MistakeHint } from '../components/chat/MistakeHint'
 import {
   buildTutorSystem,
@@ -359,5 +360,67 @@ check('correct hint renders nothing', renderToStaticMarkup(createElement(Mistake
 const bubble = gradeBubbleParts(`Почти. Форма рядом.\n\nКак будет «стол»?\n<answer>der Tisch</answer>`, appleHint)
 check('hint sits under the grade, before the next quiz', /почти/i.test(bubble.lead) && /der Tisch/i.test(bubble.rest))
 check('correct bubble is not split', gradeBubbleParts('Верно. der Apfel.', '').rest === '')
+
+function expectAduso(name: string, text: string, contrast = false) {
+  check(`${name} lists ADUSO conjunctions`, adusoLessonOk(text))
+  check(`${name} is not an adverb taxonomy`, !looksLikeAdverbTaxonomy(text))
+  check(`${name} contrasts denn and weil`, /denn/i.test(text) && /weil/i.test(text) && /конец/i.test(text))
+  check(`${name} contrasts sondern after negation`, /sondern/i.test(text) && /nicht|kein/i.test(text))
+  check(`${name} is a short effective lesson`, lessonIsEffective(text))
+  if (contrast) {
+    check(`${name} contrasts verb-final weil with ADUSO`, /когда глагол в конце/i.test(text) && /не меняется/i.test(text))
+  }
+}
+
+const adusoTable = localTutorReply('de', [msg('user', 'Дай таблицу всех aduso')], [])
+expectAduso('aduso table', adusoTable)
+const adusoBare = localTutorReply('de', [msg('user', 'ADUSO')], [])
+expectAduso('bare ADUSO', adusoBare)
+const adusoRu = localTutorReply('de', [msg('user', 'союзы адусо')], [])
+expectAduso('russian адусо', adusoRu)
+const adusoAngry = polishTutorReply('Adverbien: Manner, Zeit, Ort und Art und Weise.', 'explain', 'ADUSO блять', 'de', {
+  nebensatz: true,
+})
+expectAduso('polished angry ADUSO', adusoAngry, true)
+const adusoPrompt = buildTutorSystem('de', 'Дай таблицу всех aduso', [msg('user', 'Дай таблицу всех aduso')], 'explain')
+check('prompt forbids mapping ADUSO to adverbs', /NOT adverbs/i.test(adusoPrompt) && /aber/i.test(adusoPrompt) && /sondern/i.test(adusoPrompt))
+
+const rulesLesson = localTutorReply('de', [msg('user', 'Дай правила')], [])
+check('дай правила is an effective grammar lesson', lessonIsEffective(rulesLesson) && /порядок слов/i.test(rulesLesson) && /артикл/i.test(rulesLesson))
+check('дай правила is not lesson-ux buttons', !/<(btn|opt)>/i.test(rulesLesson) && !/после каждой фразы|не зубрите/i.test(rulesLesson))
+
+const moreRules = localTutorReply('de', [msg('user', 'какие еще правила')], [])
+check('какие еще правила is a numbered grammar list', /1\./.test(moreRules) && /2\./.test(moreRules) && /3\./.test(moreRules))
+const times = localTutorReply('de', [msg('assistant', moreRules, { id: 'rules' }), msg('user', '2')], [])
+check(
+  'topic 2 is the full präsens',
+  lessonIsEffective(times) &&
+    ['ich', 'du', 'er', 'wir', 'ihr', 'sie'].every((person) => new RegExp(`\\b${person}\\b`, 'i').test(times)) &&
+    /wir lernen/i.test(times) &&
+    /ihr lernt/i.test(times) &&
+    !hasFalseGermanPresentClaim(times),
+)
+const wordOrder = localTutorReply('de', [msg('assistant', moreRules, { id: 'rules' }), msg('user', '1')], [])
+check('topic 1 is verb-second with a trap', lessonIsEffective(wordOrder) && /втором/i.test(wordOrder) && /weil/i.test(wordOrder))
+const cases = localTutorReply('de', [msg('assistant', moreRules, { id: 'rules' }), msg('user', '4')], [])
+check('topic 4 is akkusativ with an example', lessonIsEffective(cases) && /den Tisch/i.test(cases) && /der/i.test(cases))
+
+const akkuThread = [
+  msg('user', 'Как сказать я вижу стол?', { id: 'u-akku' }),
+  msg('assistant', 'Akkusativ: Ich sehe den Tisch. — Я вижу стол.', { id: 'a-akku' }),
+  msg('user', 'А в придаточном как?', { id: 'u-neben' }),
+]
+const neben = localTutorReply('de', akkuThread, [])
+check('nebensatz after akkusativ is verb-final', lessonIsEffective(neben) && /weil/i.test(neben) && /конец/i.test(neben) && /den Tisch/i.test(neben))
+check('nebensatz does not reopen with hello', !/^\s*привет/i.test(neben))
+const adusoAfter = localTutorReply('de', [...akkuThread, msg('assistant', neben, { id: 'a-neben' }), msg('user', 'ADUSO')], [])
+expectAduso('ADUSO after nebensatz', adusoAfter, true)
+
+const greetPrior = ['Guten Tag — Добрый день', 'Wie geht es dir? — Как дела?', 'Ich heiße — Меня зовут'].join('\n')
+const greetDraft = localVocabDraft('de', 'добавь эти слова', new Set(), greetPrior)
+check(
+  'добавь эти слова keeps greetings',
+  Boolean(greetDraft?.entries.some((entry) => /guten tag/i.test(entry.term)) && !greetDraft?.entries.some((entry) => /käse|milch/i.test(entry.term))),
+)
 
 console.log('all tutorChatQuality tests passed')

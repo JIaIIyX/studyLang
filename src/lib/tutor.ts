@@ -1,3 +1,4 @@
+import { adusoLesson, nebensatzLesson, threadMentionsNebensatz, wantsAduso, wantsNebensatz } from './aduso'
 import { canonicalizeQuiz, demoteNonQuizButtons, extractQuizAnswer, extractQuizAnswers, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt, stripQuizMarkup } from './practiceTags'
 import { extractQuizChoices, looksLikeQuizRequest } from './quizChoices'
 import { repairQuizChoiceButtons } from './quizDistractors'
@@ -194,6 +195,12 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
     const fallback = localVocabDraft(language, last, new Set(), prior, hasRef)
     return fallback ? vocabPreface('', fallback.title) : 'Напишите тему, например «словарь про еду».'
   }
+  if (language === 'de' && wantsAduso(last)) {
+    return adusoLesson(threadMentionsNebensatz(messages))
+  }
+  if (language === 'de' && wantsNebensatz(last)) {
+    return nebensatzLesson(messages.slice(0, -1).map((item) => item.content).join('\n'))
+  }
   if ((wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)) {
     return lessonSetupReply(language)
   }
@@ -279,11 +286,13 @@ function grammarNote(language: Language, text: string) {
   if (/порядок\s+слов/.test(t)) {
     if (language === 'de') {
       return [
-        'Порядок слов в немецком предложении.',
+        'В обычном немецком предложении спрягаемый глагол стоит на втором месте.',
         '',
-        'В обычном предложении спрягаемый глагол на **втором** месте: Ich lerne Deutsch.',
-        'Вопрос без вопросительного слова начинается с глагола: Lernst du Deutsch?',
-        'В придаточном с weil или dass глагол уходит в конец: Ich lerne Deutsch, weil es mir gefällt.',
+        '<ex>Ich lerne Deutsch.</ex> <sec>Я учу немецкий.</sec>',
+        '',
+        'Ловушка: после weil глагол уходит в конец (Ich lerne Deutsch, weil es mir gefällt), а после denn из ADUSO порядок не меняется.',
+        '',
+        'Проверьте себя: в «___ lerne Deutsch» кто стоит на первом месте?',
       ].join('\n')
     }
     if (language === 'fr') {
@@ -294,12 +303,13 @@ function grammarNote(language: Language, text: string) {
   if (/падеж/.test(t)) {
     if (language === 'de') {
       return [
-        'Четыре падежа немецкого.',
+        'Akkusativ отвечает на «кого?»: мужской артикль der меняется на den.',
         '',
-        '**Nominativ** — кто? der Tisch.',
-        '**Akkusativ** — кого? der → den: Ich sehe den Tisch.',
-        '**Dativ** — кому? der → dem: Ich danke dem Lehrer.',
-        '**Genitiv** — чей? des Tisches.',
+        '<ex>Ich sehe den Tisch.</ex> <sec>Я вижу стол.</sec>',
+        '',
+        'Ловушка: нельзя оставить der в винительном (*Ich sehe der Tisch).',
+        '',
+        'Проверьте себя: Ich sehe ___ Tisch. Какой артикль?',
       ].join('\n')
     }
     return ''
@@ -307,15 +317,13 @@ function grammarNote(language: Language, text: string) {
   if (/артикл|der die das|le la les|\ba\/an\b|(^|\s)the(\s|$)/.test(t)) {
     if (language === 'de') {
       return [
-        'Немецкие артикли — это род существительного.',
+        'Немецкий артикль показывает род: der — мужской, die — женский, das — средний.',
         '',
-        '| Артикль | Род | Пример |',
-        '| --- | --- | --- |',
-        '| **der** | м. | der Tisch — стол |',
-        '| **die** | ж. | die Lampe — лампа |',
-        '| **das** | ср. | das Buch — книга |',
+        '<ex>der Tisch</ex> <sec>стол</sec>',
         '',
-        'Во множественном числе почти всегда **die**. Неопределённые: ein / eine.',
+        'Ловушка: нельзя ставить das к мужскому Tisch.',
+        '',
+        'Проверьте себя: какой артикль у «стол» — der, die или das?',
       ].join('\n')
     }
     if (language === 'fr') {
@@ -441,13 +449,23 @@ export function polishTutorReply(
   task: ReturnType<typeof classifyTutorTask>,
   last: string,
   language: Language,
-  options?: { allowGreeting?: boolean; quizAnswer?: string },
+  options?: { allowGreeting?: boolean; quizAnswer?: string; nebensatz?: boolean },
 ) {
   let next = canonicalizeQuiz(fixReplySpaces(text))
   if (options?.allowGreeting === false) {
     next = stripLeadingGreeting(next)
   }
-  const rulesAsk = (wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)
+  const rulesAsk =
+    (wantsLessonRules(last) || wantsBroadLesson(last)) &&
+    !picksLessonItem(last) &&
+    !wantsDeeper(last) &&
+    !wantsAduso(last) &&
+    !wantsNebensatz(last)
+  if (language === 'de' && wantsAduso(last)) {
+    next = adusoLesson(Boolean(options?.nebensatz))
+  } else if (language === 'de' && wantsNebensatz(last) && !/weil|придаточн|конец/i.test(next)) {
+    next = nebensatzLesson()
+  }
   if (task === 'explain' || task === 'general' || task === 'say') {
     if (rulesAsk && (looksLikeMetaLesson(next) || !hasSubstantiveGrammar(next, language))) {
       next = lessonSetupReply(language)
@@ -525,6 +543,12 @@ export async function replyAsTutor(
   const { quizOpen, leftQuiz } = quizState(thread)
   const task = classifyTutorTask(last, { quizOpen, leftQuiz })
 
+  if (language === 'de' && wantsAduso(last)) {
+    return { text: adusoLesson(threadMentionsNebensatz(thread)) }
+  }
+  if (language === 'de' && wantsNebensatz(last)) {
+    return { text: nebensatzLesson(thread.slice(0, -1).map((item) => item.content).join('\n')) }
+  }
   if ((wantsLessonRules(last) || wantsBroadLesson(last)) && !picksLessonItem(last) && !wantsDeeper(last)) {
     return { text: lessonSetupReply(language) }
   }
@@ -597,6 +621,7 @@ export async function replyAsTutor(
       {
         allowGreeting: packed.allowGreeting,
         quizAnswer: extractQuizAnswers(lastQuizMessage(thread.slice(0, -1))?.content ?? '')[0] ?? '',
+        nebensatz: threadMentionsNebensatz(thread),
       },
     )
     return replyWithHint(text, thread, task)

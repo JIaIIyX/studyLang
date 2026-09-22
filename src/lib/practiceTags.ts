@@ -152,9 +152,13 @@ function fromEqualsAnswer(text: string) {
 function fromLetterList(text: string) {
   if (!/(?:<answer>|___|как (?:правильно|переводится|будет)|^\s*=\s*)/im.test(text)) return text
   const lines = text.split('\n')
-  const marked = (line: string) =>
-    /^\s*(?:[-*•]|[A-Da-dА-Га-г]\s*[).:]|[1-4]\s*[).:])\s+\S/.test(line) && !/^</.test(line.trim())
-  if (lines.filter(marked).length < 2) return text
+  const marker = /^\s*(?:[-*•]|[A-Da-dА-Га-г]\s*[).:]|[1-4]\s*[).:])\s+\S/
+  const marked = (line: string) => marker.test(line) && !/^</.test(line.trim())
+  const hits = lines.filter(marked)
+  if (hits.length < 2) return text
+  const inners = hits.map((line) => line.replace(/^\s*(?:[-*•]|[A-Da-dА-Га-г]\s*[).:]|[1-4]\s*[).:])\s+/, '').trim())
+  // A grammar menu is long sentences, not a 2–4 option quiz.
+  if (inners.some((inner) => inner.length > 72 || (inner.match(/[.!?](?:\s|$)/g) ?? []).length > 1)) return text
   return lines
     .map((line) => {
       if (!marked(line)) return line

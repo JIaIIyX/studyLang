@@ -1,3 +1,4 @@
+import { ADUSO_GLOSSARY, wantsAduso, wantsNebensatz } from './aduso'
 import { languageMeta } from './languages'
 import { formatRefBlock, parseMessageRefs, resolveMessageRefs } from './messageRef'
 import { extractQuizAnswer, toCompactMarkup } from './practiceTags'
@@ -187,7 +188,12 @@ export function germanPresentParadigm() {
     '| sie / Sie | lernen |',
     '',
     '**wir lernen** и **ihr lernt** — разные формы. ich lerne, du lernst и er lernt тоже не совпадают.',
-    'Прошедшее в речи — **Perfekt**: ich habe gelernt. **Präteritum** — в рассказах: ich lernte.',
+    '',
+    '<ex>Ich lerne Deutsch.</ex> <sec>Я учу немецкий.</sec>',
+    '',
+    'Ловушка: wir lernen и ihr lernt не одинаковые. Окончание есть у каждого лица.',
+    '',
+    'Проверьте себя: как будет «мы учим» — wir ___ ?',
   ].join('\n')
 }
 
@@ -226,13 +232,18 @@ export function lessonSetupReply(language: Language = 'de') {
   return [
     'Правила немецкого языка — это грамматика, не советы как вести чат.',
     '',
-    '1. Порядок слов. В обычном предложении глагол на втором месте: Ich lerne Deutsch. Вопрос без вопросительного слова начинается с глагола: Lernst du Deutsch?',
+    '1. Порядок слов. В обычном предложении глагол на втором месте. Союзы ADUSO (aber, denn, und, sondern, oder) этот порядок не ломают.',
+    '<ex>Ich lerne Deutsch.</ex> <sec>Я учу немецкий.</sec>',
     '',
     '2. Спряжение в Präsens. Окончания разные у всех лиц: ich lerne, du lernst, er/sie/es lernt, wir lernen, ihr lernt, sie/Sie lernen. **wir lernen** и **ihr lernt** — разные формы.',
     '',
     '3. Артикли. **der** — мужской (der Tisch), **die** — женский (die Lampe), **das** — средний (das Buch). Во множественном числе почти всегда **die**.',
     '',
     '4. Падежи. Nominativ — кто? Akkusativ — кого? (der → den). Dativ — кому? (der → dem). Genitiv — чей?',
+    '',
+    'Ловушка: после weil глагол уходит в конец, после denn — нет.',
+    '',
+    'Проверьте себя: в «ich ___ Deutsch» какая форма у ich?',
   ].join('\n')
 }
 
@@ -246,7 +257,7 @@ export function classifyTutorTask(
   last: string,
   state: { quizOpen: boolean; leftQuiz: boolean },
 ): TutorTask {
-  if (wantsLessonRules(last) || wantsBroadLesson(last)) return 'explain'
+  if (wantsLessonRules(last) || wantsBroadLesson(last) || wantsAduso(last) || wantsNebensatz(last)) return 'explain'
   if (looksLikeQuizRequest(last)) return 'quiz'
   if (asksToClarifyTask(last) || picksLessonItem(last) || wantsDeeper(last)) return 'explain'
   if (state.leftQuiz) return 'explain'
@@ -508,6 +519,16 @@ export function buildTutorSystem(
         'They want to go DEEPER on the same topic you just taught. Do not restart from the definition or the menu.',
         'Assume the one-line intro is already known. Add a new angle: a contrast, an exception, or a second example.',
       )
+    } else if (wantsAduso(last)) {
+      lines.push(
+        'The student asked for ADUSO. Teach the five coordinating conjunctions aber, denn, und, sondern, oder.',
+        'Do not teach adverbs. Include the denn/weil contrast and the aber/sondern contrast, one tagged example, and one check question.',
+      )
+    } else if (wantsNebensatz(last)) {
+      lines.push(
+        'They asked about a German subordinate clause. The conjugated verb goes to the end after weil, dass, wenn, ob.',
+        'Give one full example with a Russian gloss and contrast it with denn (ADUSO), where the verb stays second.',
+      )
     } else if (wantsBroadLesson(last) || wantsLessonRules(last)) {
       lines.push(
         'They asked for grammar rules of the language, not chat etiquette.',
@@ -546,6 +567,7 @@ export function buildTutorSystem(
   if (language === 'de') {
     lines.push(
       'German Präsens: always teach the full paradigm ich, du, er/sie/es, wir, ihr, sie/Sie. Endings differ for every person. wir lernen is not ihr lernt. Never say the verb changes only in the 2nd and 3rd person singular, and never say the other forms stay the same.',
+      ADUSO_GLOSSARY,
     )
   }
   if (options?.skillFocus) lines.push(options.skillFocus)
