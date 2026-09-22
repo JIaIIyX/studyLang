@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Bookmark, Gamepad2, MessagesSquare, RotateCcw, X } from 'lucide-react'
 import { ChatComposer, type ChatComposerHandle } from '../components/chat/ChatComposer'
+import { gradeBubbleParts, MistakeHint } from '../components/chat/MistakeHint'
 import { MessageAnchor, Quotable } from '../components/chat/MessageAnchor'
 import { UserMessageActions } from '../components/chat/UserMessageActions'
 import { GAME_LINKS } from '../components/layout/GamesLabel'
@@ -281,6 +282,7 @@ export function ChatPage() {
         role: 'assistant',
         content: reply.text,
         fileDraft: reply.file || undefined,
+        mistakeHint: reply.mistakeHint,
         channel: 'tutor',
       })
     } catch {
@@ -514,18 +516,26 @@ export function ChatPage() {
                         onAttach={() => toggleAttach(message.id)}
                       />
                     </div>
-                    <RichText
-                      text={message.content}
-                      pickedAnswer={
-                        tutorMessages[index + 1]?.role === 'user' ? tutorMessages[index + 1]?.content : undefined
-                      }
-                      pickDisabled={busy}
-                      onPickAnswer={
+                    {(() => {
+                      const parts = gradeBubbleParts(message.content, message.mistakeHint)
+                      const pick =
                         !busy && tutorMessages.at(-1)?.id === message.id && extractQuizAnswer(message.content)
-                          ? (choice) => void send(choice, chatId, [])
+                          ? (choice: string) => void send(choice, chatId, [])
                           : undefined
-                      }
-                    />
+                      const picked =
+                        tutorMessages[index + 1]?.role === 'user' ? tutorMessages[index + 1]?.content : undefined
+                      return (
+                        <>
+                          <RichText text={parts.lead} pickedAnswer={picked} pickDisabled={busy} onPickAnswer={pick} />
+                          <MistakeHint hint={message.mistakeHint} />
+                          {parts.rest ? (
+                            <div className="mt-3">
+                              <RichText text={parts.rest} pickedAnswer={picked} pickDisabled={busy} onPickAnswer={pick} />
+                            </div>
+                          ) : null}
+                        </>
+                      )
+                    })()}
                     <Suspense fallback={null}><ChatMatchHint messages={tutorMessages} index={index} /></Suspense>
                     <Suspense fallback={null}><PhraseTranslate text={message.content} language={language} /></Suspense>
                     {message.fileDraft ? (

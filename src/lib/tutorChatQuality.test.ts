@@ -1,4 +1,7 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import type { ChatMessage, WordEntry } from '../types'
+import { gradeBubbleParts, MistakeHint } from '../components/chat/MistakeHint'
 import {
   buildTutorSystem,
   classifyTutorTask,
@@ -14,9 +17,9 @@ import { extractQuizChoices } from './quizChoices'
 import { plausibleQuizOptions, repairQuizChoiceButtons } from './quizDistractors'
 import { bindQuizAnswer } from './quizReply'
 import { localTutorReply, polishTutorReply, wantsVocabList } from './tutor'
-import { gradeGuess } from './tutorGrade'
+import { gradeGuess, mistakeHint } from './tutorGrade'
 import { MEMORY_RECENT_TURNS, buildTutorMemory, packTutorContext } from './tutorMemory'
-import { gradeLastQuiz, makeLocalQuiz } from './tutorQuiz'
+import { gradeLastQuiz, makeLocalQuiz, quizMistakeHint } from './tutorQuiz'
 import { localVocabDraft } from './vocabFromContext'
 
 function check(name: string, condition: boolean) {
@@ -337,5 +340,24 @@ const quotedAsk = [
   msg('user', 'добавь в словарь', { id: 'quoted', refIds: ['vocab1'], refSnippet: 'Guten Tag' }),
 ]
 check('memory keeps quoted message ids', (buildTutorMemory('de', quotedAsk).refIds ?? []).includes('vocab1'))
+
+const appleHint = mistakeHint('Der Äpfel', 'der Apfel')
+check('Der Äpfel hint names umlaut and plural', /umlaut/i.test(appleHint) && /множественн/i.test(appleHint) && /Apfel/.test(appleHint) && /Äpfel/.test(appleHint))
+check('Der Äpfel hint is not a vague retry', !/попробуй ещё раз/i.test(appleHint))
+check('exact der Apfel has no mistake hint', mistakeHint('der Apfel', 'der Apfel') === '')
+const endingHint = mistakeHint('du lerne', 'du lernst')
+check('wrong ending names -st', /-st/.test(endingHint) && /-e/.test(endingHint) && /du lernst/i.test(endingHint))
+check('article miss names the article', /артикль/i.test(mistakeHint('das Apfel', 'der Apfel')) && /не das/i.test(mistakeHint('das Apfel', 'der Apfel')))
+check('word order hint is specific', /порядок слов/i.test(mistakeHint('Deutsch lerne ich', 'Ich lerne Deutsch')))
+check('quiz near-miss carries the same hint', quizMistakeHint(appleQuiz) === appleHint)
+check('correct quiz has no hint', quizMistakeHint([appleQuiz[0], msg('user', 'der Apfel', { id: 'ok' })]) === '')
+
+const hintHtml = renderToStaticMarkup(createElement(MistakeHint, { hint: appleHint }))
+check('hint renders as muted grey text', /text-muted/.test(hintHtml) && /text-\[13px\]/.test(hintHtml) && /umlaut/i.test(hintHtml))
+check('hint is not an error banner', !/terracotta|font-bold|font-semibold|text-ink/.test(hintHtml))
+check('correct hint renders nothing', renderToStaticMarkup(createElement(MistakeHint, { hint: '' })) === '')
+const bubble = gradeBubbleParts(`Почти. Форма рядом.\n\nКак будет «стол»?\n<answer>der Tisch</answer>`, appleHint)
+check('hint sits under the grade, before the next quiz', /почти/i.test(bubble.lead) && /der Tisch/i.test(bubble.rest))
+check('correct bubble is not split', gradeBubbleParts('Верно. der Apfel.', '').rest === '')
 
 console.log('all tutorChatQuality tests passed')

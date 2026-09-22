@@ -69,6 +69,7 @@ export type ChatMessage = {
   refIds?: string[]
   refSnippet?: string
   homeworkId?: string
+  mistakeHint?: string
 }
 
 export type ChatQuizMemory = {

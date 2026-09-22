@@ -32,7 +32,7 @@ import {
   localVocabDraft,
 } from './vocabFromContext'
 import { recordQuizResult, skillQuizWish, skillTutorLine } from './skills'
-import { gradeLastQuiz, gradeLocalQuiz, improviseQuiz, lastQuizMessage, makeLocalQuiz } from './tutorQuiz'
+import { gradeLastQuiz, gradeLocalQuiz, improviseQuiz, lastQuizMessage, makeLocalQuiz, quizMistakeHint } from './tutorQuiz'
 import { catalogFromMessages } from './quizCatalog'
 import { GAME_KINDS, gameProgress, normalizeFileProgress } from './progress'
 import { allWordFiles, loadWordFile, readCustomFiles } from './library'
@@ -401,7 +401,14 @@ async function answerWithoutModel(language: Language, messages: ChatMessage[], e
   return 'Сейчас отвечаю без нейросети. Напишите «словарь про еду», «проверь меня» или «как сказать кофе».'
 }
 
-export type TutorReply = { text: string; file?: VocabDraft | null; retry?: boolean }
+export type TutorReply = { text: string; file?: VocabDraft | null; retry?: boolean; mistakeHint?: string }
+
+function replyWithHint(text: string, thread: ChatMessage[], task: ReturnType<typeof classifyTutorTask>): TutorReply {
+  const hint = quizMistakeHint(thread)
+  if (!hint) return { text }
+  if (task === 'grade' || /^(почти|неверно)(?![\p{L}\p{N}])/iu.test(text.trim())) return { text, mistakeHint: hint }
+  return { text }
+}
 
 function looksLikeMetaLesson(text: string) {
   return /после каждой фразы|будем говорить коротко|говорим коротко|не зубрите|одна тема за раз|повторяйте вслух|правила урока/i.test(
@@ -525,7 +532,7 @@ export async function replyAsTutor(
   if (pickedLesson) return { text: pickedLesson }
 
   if (!hasGemini()) {
-    return { text: await answerWithoutModel(language, thread, entries) }
+    return replyWithHint(await answerWithoutModel(language, thread, entries), thread, task)
   }
 
   if (task === 'quiz' || task === 'grade') {
@@ -540,7 +547,7 @@ export async function replyAsTutor(
       grammar: grammar || Boolean(topic.label),
       lesson: lessonHint || topic.excerpt,
     })
-    if (improvised) return { text: line ? `${line}\n\n${improvised}` : improvised }
+    if (improvised) return replyWithHint(line ? `${line}\n\n${improvised}` : improvised, thread, task)
     const localWish = topic.label
       ? `${topic.label} грамматика формы — ${last}`
       : grammar
@@ -550,7 +557,7 @@ export async function replyAsTutor(
       task === 'grade'
         ? gradeLocalQuiz(language, thread, entries, localWish, catalog)
         : makeLocalQuiz(language, entries, localWish, catalog)
-    if (local) return { text: local }
+    if (local) return replyWithHint(local, thread, task)
   }
 
   const cheap = await cheapTutorReply(last, entries, task)
@@ -582,18 +589,17 @@ export async function replyAsTutor(
   })
 
   try {
-    return {
-      text: polishTutorReply(
-        await askGemini(packed.system, packed.history, tutorAskOptions(task)),
-        task,
-        last,
-        language,
-        {
-          allowGreeting: packed.allowGreeting,
-          quizAnswer: extractQuizAnswers(lastQuizMessage(thread.slice(0, -1))?.content ?? '')[0] ?? '',
-        },
-      ),
-    }
+    const text = polishTutorReply(
+      await askGemini(packed.system, packed.history, tutorAskOptions(task)),
+      task,
+      last,
+      language,
+      {
+        allowGreeting: packed.allowGreeting,
+        quizAnswer: extractQuizAnswers(lastQuizMessage(thread.slice(0, -1))?.content ?? '')[0] ?? '',
+      },
+    )
+    return replyWithHint(text, thread, task)
   } catch (error) {
     console.warn('[tutor] llm failed', error)
     const message = error instanceof Error ? error.message : String(error)
@@ -603,7 +609,7 @@ export async function replyAsTutor(
     if (isQuotaError(error) || /timeout|empty/i.test(message)) {
       return { text: MODEL_TIMEOUT_HINT, retry: true }
     }
-    return { text: await answerWithoutModel(language, thread, entries) }
+    return replyWithHint(await answerWithoutModel(language, thread, entries), thread, task)
   }
 }
 

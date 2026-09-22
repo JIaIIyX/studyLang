@@ -120,3 +120,107 @@ export function almostReason(notes: string[], shown: string, expected: string) {
   }
   return `Нужно **${expected}**, а не «${shown}».`
 }
+
+function nounOf(value: string) {
+  const parts = dropArticle(rawTokens(value))
+  return parts.rest.join(' ') || stripMarks(value).trim()
+}
+
+function articleOf(value: string) {
+  return dropArticle(rawTokens(value)).article
+}
+
+function commonPrefix(left: string, right: string) {
+  const a = left.toLowerCase()
+  const b = right.toLowerCase()
+  let index = 0
+  while (index < a.length && index < b.length && a[index] === b[index]) index += 1
+  return a.slice(0, index)
+}
+
+function endingHint(guess: string, expected: string) {
+  const guessWord = nounOf(guess).split(' ').at(-1) ?? ''
+  const wantWord = nounOf(expected).split(' ').at(-1) ?? ''
+  if (!guessWord || !wantWord || foldStrict(guessWord) === foldStrict(wantWord)) return ''
+  const stem = commonPrefix(guessWord, wantWord)
+  if (stem.length < 3) return ''
+  const guessEnd = guessWord.slice(stem.length)
+  const wantEnd = wantWord.slice(stem.length)
+  if (!guessEnd && !wantEnd) return ''
+  if (guessEnd.length > 4 || wantEnd.length > 4) return ''
+  const shown = expected.trim()
+  return `Не то окончание: нужно -${wantEnd || '∅'} (${shown}), а не -${guessEnd || '∅'}.`
+}
+
+function wordOrderHint(guess: string, expected: string) {
+  const left = tokens(guess)
+  const right = tokens(expected)
+  if (left.length < 3 || left.length !== right.length) return ''
+  if (left.join(' ') === right.join(' ')) return ''
+  const bag = (items: string[]) => [...items].sort().join(' ')
+  if (bag(left) !== bag(right)) return ''
+  return 'Порядок слов: глагол на втором месте.'
+}
+
+function editDistance(left: string, right: string) {
+  const a = foldStrict(left)
+  const b = foldStrict(right)
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index)
+  for (let i = 1; i <= a.length; i += 1) {
+    let prev = row[0]
+    row[0] = i
+    for (let j = 1; j <= b.length; j += 1) {
+      const next = a[i - 1] === b[j - 1] ? prev : Math.min(prev, row[j - 1], row[j]) + 1
+      prev = row[j]
+      row[j] = next
+    }
+  }
+  return row[b.length] ?? 0
+}
+
+export function mistakeHint(guess: string, expected: string) {
+  const shown = stripMarks(guess).trim()
+  const want = stripMarks(expected).trim()
+  if (!shown || !want) return ''
+  const graded = gradeGuess(shown, want)
+  if (graded.verdict === 'correct') return ''
+
+  const order = wordOrderHint(shown, want)
+  if (order) return order
+
+  const ending = endingHint(shown, want)
+  if (ending) return ending
+
+  const guessNoun = nounOf(shown)
+  const wantNoun = nounOf(want)
+  if (graded.notes.includes('umlaut') || graded.notes.includes('plural')) {
+    const extraUmlaut = /[äöüÄÖÜ]/.test(guessNoun) && !/[äöüÄÖÜ]/.test(wantNoun)
+    if (graded.notes.includes('umlaut') && graded.notes.includes('plural')) {
+      return extraUmlaut
+        ? `Почти: umlaut не нужен, это множественное число — ${wantNoun}, не ${guessNoun}.`
+        : `Почти: другая форма с umlaut — ${wantNoun}, не ${guessNoun}.`
+    }
+    if (graded.notes.includes('umlaut')) {
+      return extraUmlaut
+        ? `Почти: umlaut не нужен — ${wantNoun}, не ${guessNoun}.`
+        : `Почти: нужен umlaut — ${wantNoun}, не ${guessNoun}.`
+    }
+    return `Почти: это множественное число — ${wantNoun}, не ${guessNoun}.`
+  }
+
+  const guessArticle = articleOf(shown)
+  const wantArticle = articleOf(want)
+  if (guessArticle && wantArticle && foldStrict(guessArticle) !== foldStrict(wantArticle)) {
+    return `Артикль: ${want}, не ${guessArticle}.`
+  }
+
+  if (graded.notes.includes('capital')) {
+    return `С большой буквы: ${want}, не «${shown}».`
+  }
+
+  if (wantNoun.length >= 4 && guessNoun.length >= 3 && editDistance(guessNoun, wantNoun) > 0 && editDistance(guessNoun, wantNoun) <= 2) {
+    return `Написание: нужно ${wantNoun}, не ${guessNoun}.`
+  }
+
+  return `Не то слово: нужно ${want}, не ${shown}.`
+}

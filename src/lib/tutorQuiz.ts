@@ -5,7 +5,7 @@ import { canonicalizeQuiz, extractQuizAnswer, extractQuizAnswers, fixReplySpaces
 import { extractQuizChoices, quizQuestionText, refersToPassage, hasReadingStimulus, looksLikeLeavingQuiz, looksLikeQuizRequest } from './quizChoices'
 import { picksFromChoices } from './quizReply'
 import { fold, matchesAnswer, shuffle } from './normalize'
-import { almostReason, gradeFreeText, gradeGuess, joinGradeAnswers, type GradeVerdict } from './tutorGrade'
+import { almostReason, gradeFreeText, gradeGuess, joinGradeAnswers, mistakeHint, type GradeVerdict } from './tutorGrade'
 import { plausibleQuizOptions, repairQuizChoiceButtons } from './quizDistractors'
 import {
   catalogDigest,
@@ -507,6 +507,27 @@ function explainQuizGrade(opts: {
     return `Почти. «${shown[0]}» сюда не подходит — нужно **${need}**.`
   }
   return `Почти. Нужно: **${need}**.`
+}
+
+export function quizMistakeHint(messages: ChatMessage[]) {
+  const last = messages.at(-1)?.content.trim() ?? ''
+  const previous = lastQuizMessage(messages.slice(0, -1))
+  if (!previous) return ''
+  const expected = extractQuizAnswers(previous.content)
+  if (!expected.length) return ''
+  const choices = extractQuizChoices(previous.content)
+  const payload = last.replace(/^задание\s*#?\d+\s*ответ(?:\s+[A-DА-Гa-dа-г]+)?\s*:\s*/iu, '').trim() || last
+  if (
+    looksLikeQuizRequest(last) ||
+    looksLikeQuizRequest(payload) ||
+    looksLikeLeavingQuiz(last, choices) ||
+    looksLikeLeavingQuiz(payload, choices)
+  ) {
+    return ''
+  }
+  if (expected.some((item) => gradeGuess(payload, item).verdict === 'correct')) return ''
+  const near = expected.find((item) => gradeGuess(payload, item).verdict === 'almost') ?? expected[0]
+  return mistakeHint(payload, near)
 }
 
 export function gradeLastQuiz(messages: ChatMessage[]) {
