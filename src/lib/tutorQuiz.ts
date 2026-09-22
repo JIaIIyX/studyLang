@@ -405,30 +405,110 @@ function filterEntriesByWish(entries: WordEntry[], wish: string) {
   return easy.length >= 4 ? easy : entries
 }
 
+function filterEntriesByFocus(entries: WordEntry[], focus: string) {
+  const key = fold(focus)
+  if (!key || key.length < 2) return entries
+  const hits = entries.filter((entry) => {
+    const term = fold(entry.term)
+    const translation = fold(entry.translation ?? '')
+    const bare = fold(entry.term.replace(/^(der|die|das|le|la|les|un|une|a|an|the)\s+/iu, ''))
+    return term === key || bare === key || translation === key || term.includes(key) || translation.includes(key) || bare.includes(key)
+  })
+  return hits.length ? hits : entries
+}
+
+function extractFocusFromWish(wish: string) {
+  const tagged = wish.match(/слово:\s*([^—\n]+)/i)?.[1]?.trim()
+  if (tagged) return tagged.replace(/\s+/g, ' ').trim()
+  return ''
+}
+
+function focusMatchesBlob(focus: string, blob: string) {
+  const key = fold(focus)
+  if (!key) return true
+  const hay = fold(blob)
+  return hay.includes(key)
+}
+
 export function makeLocalQuiz(language: Language, entries: WordEntry[], wish: string, catalog: QuizCatalog = emptyCatalog()) {
-  const pool = filterEntriesByWish(entries, wish)
+  const focus = extractFocusFromWish(wish)
+  const pool = filterEntriesByFocus(filterEntriesByWish(entries, wish), focus)
   const hard = wishDifficulty(wish) === 'hard'
+  const focusedArticle = Boolean(focus) && /(артикл|article)/i.test(wish)
+
+  const focusedArticleItem = (): QuizItem | null => {
+    if (!focus) return null
+    const hit = pool.find((entry) => {
+      const bare = fold(entry.term.replace(/^(der|die|das|le|la|les|un|une|a|an|the)\s+/iu, ''))
+      return bare === fold(focus) || fold(entry.term).includes(fold(focus)) || fold(entry.translation ?? '') === fold(focus)
+    })
+    if (!hit) {
+      // Synthesize Apfel-style article item when shelf lacks the lemma.
+      if (language !== 'de') return null
+      const word = focus.replace(/^(der|die|das)\s+/iu, '').trim()
+      if (!/^[A-Za-zÄÖÜäöüß]{2,}$/u.test(word)) return null
+      const article = /apfel|käse|tisch|mann|hund/i.test(word) ? 'der' : /milch|zeit|frau/i.test(word) ? 'die' : 'das'
+      return {
+        prompt: 'Выберите правильный артикль.',
+        blank: `___ ${word}${/яблок|apfel/i.test(`${word} ${wish}`) ? ' — яблоко' : ''}`,
+        answer: article,
+        options: ARTICLES.de,
+        avoid: word,
+      }
+    }
+    const parts = splitArticle(language, hit.term)
+    if (!parts) return null
+    const example = hit.example?.trim() || ''
+    const blank = example ? blankOnce(example, parts.article) : `___ ${parts.word}`
+    if (!blank.includes('___')) return null
+    return {
+      prompt: 'Выберите правильный артикль.',
+      blank: hit.translation ? `${blank} — ${hit.translation}` : blank,
+      answer: parts.article,
+      options: ARTICLES[language],
+      avoid: parts.word,
+    }
+  }
+
   const makers: Record<string, () => QuizItem | null> = {
     'to-ru': () => toRuItem(language, pool, catalog),
     'from-ru': () => fromRuItem(language, pool, catalog),
     'write-ru': () => writeRuItem(language, pool, catalog),
     'write-practice': () => writePracticeItem(language, pool, catalog),
-    form: () => formSeedItem(language, catalog),
+    form: () => {
+      if (focus) {
+        // Never drift to Haus/Zeit form seeds when a lemma is open.
+        return focusedArticleItem() || gapItem(language, pool, catalog) || articleItem(language, pool, catalog)
+      }
+      return formSeedItem(language, catalog)
+    },
     verb: () => verbFormItem(language, pool, catalog),
-    article: () => articleItem(language, pool, catalog),
+    article: () => (focus ? focusedArticleItem() : null) || articleItem(language, pool, catalog),
     gap: () => gapItem(language, pool, catalog),
   }
   const hardKinds = ['form', 'verb', 'gap', 'article'] as const
-  const kinds = hard
+  let kinds = hard
     ? [...hardKinds, ...wantedKinds(wish).filter((kind) => !(hardKinds as readonly string[]).includes(kind))]
-    : wantedKinds(wish)
-  for (const kind of shuffle([...kinds])) {
+    : [...wantedKinds(wish)]
+  if (focusedArticle) {
+    kinds = ['article', 'form', 'gap', 'write-practice', 'from-ru', ...kinds.filter((k) => k !== 'article' && k !== 'form')]
+  } else if (focus) {
+    kinds = ['article', 'from-ru', 'to-ru', 'write-practice', 'write-ru', 'gap', ...kinds]
+  }
+  for (const kind of focusedArticle || focus ? kinds : shuffle([...kinds])) {
     if (hard && pool.length < 4 && (kind === 'to-ru' || kind === 'from-ru' || kind === 'write-ru' || kind === 'write-practice')) {
       continue
     }
     const item = makers[kind]?.()
     if (item) {
       const text = formatQuiz(item, language)
+      if (text && isClearQuiz(text) && focusMatchesBlob(focus, text)) return text
+    }
+  }
+  if (focus) {
+    const forced = focusedArticleItem()
+    if (forced) {
+      const text = formatQuiz(forced, language)
       if (text && isClearQuiz(text)) return text
     }
   }
@@ -438,6 +518,8 @@ export function makeLocalQuiz(language: Language, entries: WordEntry[], wish: st
     fromRuItem(language, pool, catalog) ||
     formSeedItem(language, catalog)
   const text = fallback ? formatQuiz(fallback, language) : ''
+  if (text && isClearQuiz(text) && focusMatchesBlob(focus, text)) return text
+  if (focus) return ''
   return text && isClearQuiz(text) ? text : ''
 }
 
@@ -620,7 +702,8 @@ function isClearQuiz(text: string) {
     if (words.length < 1) return false
     const choices = extractQuizChoices(text)
     const answers = extractQuizAnswers(text)
-    if (choices.length >= 3 && answers.length < 2 && !hasTenseCue(question)) return false
+    const articleAsk = /артикл|article|___ (?:der|die|das|[A-ZÄÖÜ])/i.test(question)
+    if (choices.length >= 3 && answers.length < 2 && !hasTenseCue(question) && !articleAsk) return false
     return true
   }
   const cue = question.match(/[«"]([^»"]+)[»"]/)?.[1]?.trim() ?? ''
@@ -692,20 +775,24 @@ function quizSystem(
   entries: WordEntry[],
   wish: string,
   catalog: QuizCatalog,
-  options?: { grammar?: boolean; lesson?: string },
+  options?: { grammar?: boolean; lesson?: string; focus?: string },
   extra = '',
 ) {
   const practice = languageMeta(language).native
   const grammar = Boolean(options?.grammar) || /(врем|предложен|грамматик|артикл|практик)/i.test(wish)
-  const pool = grammar ? '' : shelfPool(language, entries, catalog)
+  const focus = options?.focus || extractFocusFromWish(wish)
+  const pool = grammar && !focus ? '' : shelfPool(language, filterEntriesByFocus(entries, focus), catalog)
   const digest = catalogDigest(catalog)
   return {
     grammar,
+    focus,
     system: [
       `StudyLang quiz. Practice: ${practice}. Invent ONE short item. Russian instruction only.`,
       'No preamble, admin, modes, or pair-rules.',
       grammar
-        ? 'Make a grammar item about the current lesson: tense, form, or word order. MUST be a full sentence with ___ and 3–4 [options] of forms. Never ask to pick a form of a word in «quotes» without that sentence. NOT a vocabulary translation. NOT a random shelf word.'
+        ? focus
+          ? `Make a grammar item about the lemma «${focus}» (article / form / gap). MUST mention ${focus}. Never switch to Haus, Zeit, Buch, or unrelated nouns.`
+          : 'Make a grammar item about the current lesson: tense, form, or word order. MUST be a full sentence with ___ and 3–4 [options] of forms. Never ask to pick a form of a word in «quotes» without that sentence. NOT a vocabulary translation. NOT a random shelf word.'
         : 'Types you may pick: write a translation (no buttons), write the practice word (no buttons), choose a form with ___, choose an article, choose a translation with [options].',
       'Include one or more =answer lines. Copy option text (надежда), never «answer 1» or «B».',
       'No secrets, no {{ }}. Question + [options] + =answer only.',
@@ -719,10 +806,13 @@ function quizSystem(
       pool ? `Prefer a pair from the shelf: ${pool}` : '',
       options?.lesson ? `Lesson to stay on: ${options.lesson.slice(0, 420)}` : '',
       options?.lesson ? 'MUST stay on the student topic from Lesson above. Do not switch to unrelated vocabulary or another tense.' : '',
+      focus
+        ? `Focus lemma: ${focus}. The question, blank, or answer MUST involve ${focus}. Do not invent Haus/Zeit/Buch items.`
+        : '',
       digest,
       extra,
       wish ? `Student asked: ${wish.slice(0, 180)}` : '',
-      wishDifficulty(wish) === 'hard'
+      wishDifficulty(wish) === 'hard' && !focus
         ? 'Difficulty: B1–B2. Prefer grammar (tense/form/gap) or less common vocabulary. Avoid A1 words like apple/house/bread/train.'
         : wishDifficulty(wish) === 'easy'
           ? 'Difficulty: A1–A2. Prefer very common everyday vocabulary.'
@@ -741,20 +831,23 @@ export async function improviseQuiz(
   entries: WordEntry[],
   wish: string,
   catalog: QuizCatalog = emptyCatalog(),
-  options?: { grammar?: boolean; lesson?: string },
+  options?: { grammar?: boolean; lesson?: string; focus?: string },
 ) {
   const first = quizSystem(language, entries, wish, catalog, options)
+  const focus = first.focus || options?.focus || extractFocusFromWish(wish)
   try {
     const raw = repairQuizChoiceButtons(await askQuizDraft(first.system, wish, first.grammar, 0.85), language)
-    if (isValidImprovisedQuiz(raw) && !quizRepeatsCatalog(raw, catalog)) return raw
-    if (isValidImprovisedQuiz(raw) && quizRepeatsCatalog(raw, catalog)) {
+    if (isValidImprovisedQuiz(raw) && !quizRepeatsCatalog(raw, catalog) && focusMatchesBlob(focus, raw)) return raw
+    if (isValidImprovisedQuiz(raw) && (quizRepeatsCatalog(raw, catalog) || !focusMatchesBlob(focus, raw))) {
       const used = keysFromQuiz(raw)
-      const extra = used
-        ? `Rejected a repeat. Do not use answer ${used.answers.join(', ') || 'that'} or frame ${used.frames.join(' | ') || used.cues.join(' | ') || 'that'}.`
-        : 'Rejected a repeat. Invent a different answer and sentence.'
+      const extra = !focusMatchesBlob(focus, raw)
+        ? `Rejected off-topic item. Stay on lemma ${focus}. Do not use Haus, Zeit, or other unrelated nouns.`
+        : used
+          ? `Rejected a repeat. Do not use answer ${used.answers.join(', ') || 'that'} or frame ${used.frames.join(' | ') || used.cues.join(' | ') || 'that'}.`
+          : 'Rejected a repeat. Invent a different answer and sentence.'
       const retry = quizSystem(language, entries, wish, catalog, options, extra)
       const again = repairQuizChoiceButtons(await askQuizDraft(retry.system, wish, retry.grammar, 0.95), language)
-      if (isValidImprovisedQuiz(again) && !quizRepeatsCatalog(again, catalog)) return again
+      if (isValidImprovisedQuiz(again) && !quizRepeatsCatalog(again, catalog) && focusMatchesBlob(focus, again)) return again
     }
   } catch {
     /* local fallback */

@@ -1,4 +1,5 @@
 import { ADUSO_GLOSSARY, wantsAduso, wantsNebensatz } from './aduso'
+import { SWISS_GERMAN_GLOSSARY, wantsSwissGerman } from './swissGerman'
 import { languageMeta } from './languages'
 import { formatRefBlock, parseMessageRefs, resolveMessageRefs } from './messageRef'
 import { extractQuizAnswer, toCompactMarkup } from './practiceTags'
@@ -257,7 +258,15 @@ export function classifyTutorTask(
   last: string,
   state: { quizOpen: boolean; leftQuiz: boolean },
 ): TutorTask {
-  if (wantsLessonRules(last) || wantsBroadLesson(last) || wantsAduso(last) || wantsNebensatz(last)) return 'explain'
+  if (
+    wantsLessonRules(last) ||
+    wantsBroadLesson(last) ||
+    wantsAduso(last) ||
+    wantsNebensatz(last) ||
+    wantsSwissGerman(last)
+  ) {
+    return 'explain'
+  }
   if (looksLikeQuizRequest(last)) return 'quiz'
   if (asksToClarifyTask(last) || picksLessonItem(last) || wantsDeeper(last)) return 'explain'
   if (state.leftQuiz) return 'explain'
@@ -392,13 +401,63 @@ export function topicFromThread(messages: ChatMessage[]) {
 
 export function buildQuizWish(last: string, messages: ChatMessage[]) {
   const topic = topicFromThread(messages)
-  const same = refersToCurrentTopic(last) || (/тест|задани|квиз|провер/i.test(last) && Boolean(topic.label))
+  const focus = focusLemmaFromThread(messages)
+  const same = refersToCurrentTopic(last) || (/тест|задани|квиз|провер/i.test(last) && Boolean(topic.label || focus))
   const parts: string[] = [last.trim()]
+  if (focus) parts.push(`слово: ${focus}`)
   if (topic.label) parts.push(`тема: ${topic.label}`)
   if ((same || topic.grammar) && topic.excerpt) parts.push(topic.excerpt.slice(0, same ? 280 : 160))
   if (topic.grammar || topic.label) parts.push('грамматика формы')
-  if (same) parts.push('строго по текущей теме обсуждения, не меняй тему на другую')
-  return { wish: parts.filter(Boolean).join(' — '), topic }
+  if (focus) {
+    parts.push(`строго по слову ${focus}, не меняй на Haus/Zeit или другие леммы`)
+  } else if (same) {
+    parts.push('строго по текущей теме обсуждения, не меняй тему на другую')
+  }
+  return { wish: parts.filter(Boolean).join(' — '), topic, focus }
+}
+
+/** Open topic or last asked lemma (e.g. Apfel / яблоко) for quiz stickiness. */
+export function focusLemmaFromThread(messages: ChatMessage[]): string {
+  const recent = messages.slice(-16)
+  for (const item of [...recent].reverse()) {
+    const fromText = focusLemmaFromText(item.content)
+    if (fromText) return fromText
+  }
+  const quiz = [...recent].reverse().find((item) => item.role === 'assistant' && extractQuizAnswer(item.content))
+  if (quiz) {
+    const answer = extractQuizAnswer(quiz.content) ?? ''
+    const cue = quiz.content.match(/[«"]([^»"]+)[»"]/)?.[1]?.trim() ?? ''
+    const fromAnswer = stripLemmaArticle(answer)
+    if (fromAnswer && !/^(der|die|das|le|la|les|un|une|a|an|the)$/i.test(fromAnswer)) return fromAnswer
+    if (cue) return stripLemmaArticle(cue)
+  }
+  return ''
+}
+
+export function focusLemmaFromText(text: string): string {
+  const value = text.normalize('NFC')
+  const quoted = value.match(/[«"]([^»"]{2,40})[»"]/)?.[1]?.trim()
+  if (quoted && quoted.split(/\s+/).length <= 3) return stripLemmaArticle(quoted)
+
+  const about =
+    value.match(
+      /(?:артикл\p{L}*|статья|слово|лемм\p{L}*|про|для|у|about|article\s+(?:for|of)|lemma)\s+(?:(?:der|die|das|le|la|les|un|une|the|an|a)\s+)?([A-Za-zÄÖÜäöüßÉéÈèÊêÀàÂâÔôÙùÛûÇç]{3,}|[а-яё]{3,})/iu,
+    )?.[1]
+  if (about) return stripLemmaArticle(about)
+
+  const bareDe =
+    value.match(/\b(?:der|die|das)\s+([A-ZÄÖÜ][a-zäöüß]{2,})\b/)?.[1] ||
+    value.match(/\b(Apfel|Haus|Zeit|Tisch|Käse|Milch|Brot|Buch|Mann)\b/i)?.[1]
+  if (bareDe && /артикл|проверь|квиз|практик|задани|тест/i.test(value)) return stripLemmaArticle(bareDe)
+
+  return ''
+}
+
+function stripLemmaArticle(value: string) {
+  return value
+    .trim()
+    .replace(/^(der|die|das|le|la|les|un|une|a|an|the)\s+/iu, '')
+    .trim()
 }
 
 
@@ -524,6 +583,12 @@ export function buildTutorSystem(
         'The student asked for ADUSO. Teach the five coordinating conjunctions aber, denn, und, sondern, oder.',
         'Do not teach adverbs. Include the denn/weil contrast and the aber/sondern contrast, one tagged example, and one check question.',
       )
+    } else if (wantsSwissGerman(last)) {
+      lines.push(
+        'The student asked about Swiss German / Schweizerdeutsch. Teach that it is Alemannic dialects (not one language); Hochdeutsch for writing/formal; dialects for speech.',
+        'Use ONLY real labels: Züritüütsch, Bärndütsch, Baseldytsch, Walliserdeutsch. NEVER invent towns or nicknames.',
+        'Give concrete examples with RU gloss: Grüezi vs Guten Tag, Velo vs Fahrrad, merci vilmal, Ade/Adieu. One check question.',
+      )
     } else if (wantsNebensatz(last)) {
       lines.push(
         'They asked about a German subordinate clause. The conjugated verb goes to the end after weil, dass, wenn, ob.',
@@ -568,6 +633,7 @@ export function buildTutorSystem(
     lines.push(
       'German Präsens: always teach the full paradigm ich, du, er/sie/es, wir, ihr, sie/Sie. Endings differ for every person. wir lernen is not ihr lernt. Never say the verb changes only in the 2nd and 3rd person singular, and never say the other forms stay the same.',
       ADUSO_GLOSSARY,
+      SWISS_GERMAN_GLOSSARY,
     )
   }
   if (options?.skillFocus) lines.push(options.skillFocus)

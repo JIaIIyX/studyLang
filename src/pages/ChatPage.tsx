@@ -14,6 +14,7 @@ import { languageMeta } from '../lib/languages'
 import { messageAnchor, messageNo, previewMessage } from '../lib/messageRef'
 import { getSnapshot } from '../lib/persist'
 import { adusoLesson, nebensatzLesson, threadMentionsNebensatz, wantsAduso, wantsNebensatz } from '../lib/aduso'
+import { swissGermanLesson, wantsGrueziContrast, wantsSwissGerman } from '../lib/swissGerman'
 import { forgetTutorLibrary, makeVocabReply, replyAsTutor, wantsSpokenDialogue, wantsVocabList } from '../lib/tutor'
 import { isReferentialVocabWish } from '../lib/vocabFromContext'
 import { bindQuizAnswer } from '../lib/quizReply'
@@ -234,6 +235,18 @@ export function ChatPage() {
       setBusy(true)
       try {
         const text = adusoLesson(threadMentionsNebensatz(nextHistory))
+        if (gen !== sendGen.current) return
+        appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
+      } finally {
+        if (gen === sendGen.current) setBusy(false)
+      }
+      return
+    }
+
+    if (wantsSwissGerman(content) || wantsSwissGerman(posted)) {
+      setBusy(true)
+      try {
+        const text = swissGermanLesson(wantsGrueziContrast(content) || wantsGrueziContrast(posted))
         if (gen !== sendGen.current) return
         appendMessage(id, { role: 'assistant', content: text, channel: 'tutor' })
       } finally {

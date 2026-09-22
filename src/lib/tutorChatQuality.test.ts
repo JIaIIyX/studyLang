@@ -2,11 +2,20 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { ChatMessage, Language, WordEntry } from '../types'
 import { adusoLessonOk, lessonIsEffective, looksLikeAdverbTaxonomy, wantsAduso } from './aduso'
+import {
+  hasInventedSwissPlaces,
+  swissLessonOk,
+  swissGermanLesson,
+  wantsGrueziContrast,
+  wantsSwissGerman,
+} from './swissGerman'
 import { gradeBubbleParts, MistakeHint } from '../components/chat/MistakeHint'
 import {
+  buildQuizWish,
   buildTutorSystem,
   classifyTutorTask,
   compactHistory,
+  focusLemmaFromThread,
   hasFalseGermanPresentClaim,
   isQuizItem,
   lessonSetupReply,
@@ -471,5 +480,67 @@ const rasskazhiPro = localTutorReply('de', [msg('user', 'расскажи про
 expectAduso('расскажи про aduso', rasskazhiPro)
 check('расскажи про aduso is not ads platform', !/adsense|рекламн|платформ/i.test(rasskazhiPro))
 check('расскажи про aduso is not model leak', !/We must|User:|instructions/i.test(rasskazhiPro))
+
+function expectSwiss(name: string, text: string, contrast = false) {
+  check(`${name} has Grüezi`, /grüezi|gruezi/i.test(text))
+  check(`${name} has concrete dialect examples`, /\bvelo\b|merci\s+vilmal/i.test(text))
+  check(`${name} contrasts Hochdeutsch`, /hochdeutsch|guten\s+tag|fahrrad/i.test(text))
+  check(`${name} has no fake places`, !hasInventedSwissPlaces(text) && !/тюрск|тоттберг|эмили/i.test(text))
+  check(`${name} lesson ok`, swissLessonOk(text))
+  if (contrast) {
+    check(`${name} has Grüezi vs Guten Tag table`, /guten\s+tag/i.test(text) && /\|/.test(text))
+  }
+}
+
+check(
+  'swiss intents detected',
+  wantsSwissGerman('Расскажи про швейцарский диалект с примерами') &&
+    wantsSwissGerman('Schweizerdeutsch') &&
+    wantsSwissGerman('Schwyzerdütsch') &&
+    wantsSwissGerman('Swiss German') &&
+    wantsSwissGerman('швейцарский немецкий') &&
+    wantsSwissGerman('Grüezi') &&
+    wantsGrueziContrast('Чем Grüezi отличается от Guten Tag?'),
+)
+
+const swissAsk = localTutorReply('de', [msg('user', 'Расскажи про швейцарский диалект немецкого, дай примеры')], [])
+expectSwiss('swiss dialect ask', swissAsk)
+check('swiss lesson names real dialects', /züritüütsch/i.test(swissAsk) && /bärndütsch/i.test(swissAsk) && /baseldytsch/i.test(swissAsk))
+
+const grueziAsk = localTutorReply('de', [msg('user', 'Чем Grüezi отличается от Guten Tag?')], [])
+expectSwiss('grüezi contrast', grueziAsk, true)
+
+const swissHallucination = polishTutorReply(
+  'В Швейцарии говорят на Тюрском, Тоттбергском и Эмили-Вегис диалектах. Приветствие: Hallo.',
+  'explain',
+  'Расскажи про швейцарский диалект',
+  'de',
+)
+expectSwiss('polished swiss hallucination scrub', swissHallucination)
+check('hallucination scrub is local lesson', /velo/i.test(swissHallucination) && swissGermanLesson(false).includes('Grüezi') ? /grüezi/i.test(swissHallucination) : true)
+
+const swissPrompt = buildTutorSystem('de', 'Schweizerdeutsch', [msg('user', 'Schweizerdeutsch')], 'explain')
+check(
+  'prompt forbids inventing Swiss places',
+  /NEVER invent/i.test(swissPrompt) && /Züritüütsch/i.test(swissPrompt) && /Grüezi/i.test(swissPrompt),
+)
+
+const apfelThread = [
+  msg('user', 'Разберём артикль у Apfel', { id: 'u-apfel' }),
+  msg('assistant', 'der Apfel — яблоко. Мужской род.', { id: 'a-apfel' }),
+  msg('user', 'проверь меня по артиклю', { id: 'u-quiz' }),
+]
+check('focus lemma sticks to Apfel', focusLemmaFromThread(apfelThread) === 'Apfel')
+const apfelWish = buildQuizWish(apfelThread.at(-1)!.content, apfelThread)
+check('quiz wish keeps Apfel', /слово:\s*Apfel/i.test(apfelWish.wish) && apfelWish.focus === 'Apfel')
+const apfelEntries: WordEntry[] = [
+  { id: '1', term: 'der Apfel', translation: 'яблоко' },
+  { id: '2', term: 'das Haus', translation: 'дом' },
+  { id: '3', term: 'die Zeit', translation: 'время' },
+  { id: '4', term: 'der Tisch', translation: 'стол' },
+]
+const apfelQuiz = makeLocalQuiz('de', apfelEntries, apfelWish.wish)
+check('local Apfel article quiz mentions Apfel', /apfel/i.test(apfelQuiz))
+check('local Apfel article quiz does not drift to Haus/Zeit', !/\bhaus\b/i.test(apfelQuiz) && !/\bzeit\b/i.test(apfelQuiz))
 
 console.log('all tutorChatQuality tests passed')

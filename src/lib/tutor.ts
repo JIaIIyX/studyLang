@@ -1,4 +1,10 @@
 import { adusoLesson, adusoReplyNeedsLesson, nebensatzLesson, threadMentionsNebensatz, wantsAduso, wantsNebensatz } from './aduso'
+import {
+  swissGermanLesson,
+  swissReplyNeedsLesson,
+  wantsGrueziContrast,
+  wantsSwissGerman,
+} from './swissGerman'
 import { canonicalizeQuiz, demoteNonQuizButtons, extractQuizAnswer, extractQuizAnswers, fixReplySpaces, keepFirstExercise, limitExamples, sealDanglingPrompt, stripQuizMarkup } from './practiceTags'
 import { extractQuizChoices, looksLikeQuizRequest } from './quizChoices'
 import { repairQuizChoiceButtons } from './quizDistractors'
@@ -125,7 +131,7 @@ export function wantsSpokenDialogue(text: string) {
 
 export function wantsVocabList(messages: ChatMessage[]) {
   const last = messages.at(-1)?.content ?? ''
-  if (wantsAduso(last) || wantsNebensatz(last)) return false
+  if (wantsAduso(last) || wantsNebensatz(last) || wantsSwissGerman(last)) return false
   const text = last.toLowerCase()
   const hasRef = Boolean(messages.at(-1)?.refIds?.length || messages.at(-1)?.refSnippet)
   if (/(домашн|домашк|тетрад|homework|(?:^|[^\p{L}])д[/.]?з(?:$|[^\p{L}]))/iu.test(text)) return false
@@ -192,6 +198,9 @@ function localReply(language: Language, messages: ChatMessage[], entries: WordEn
   const lower = last.toLowerCase()
   if (wantsAduso(last)) {
     return adusoLesson(threadMentionsNebensatz(messages))
+  }
+  if (wantsSwissGerman(last)) {
+    return swissGermanLesson(wantsGrueziContrast(last))
   }
   if (wantsNebensatz(last)) {
     return nebensatzLesson(messages.slice(0, -1).map((item) => item.content).join('\n'))
@@ -461,13 +470,15 @@ export function polishTutorReply(
     !picksLessonItem(last) &&
     !wantsDeeper(last) &&
     !wantsAduso(last) &&
-    !wantsNebensatz(last)
+    !wantsNebensatz(last) &&
+    !wantsSwissGerman(last)
   if (wantsAduso(last) && (adusoReplyNeedsLesson(next) || looksLikeModelLeak(next))) {
-      next = adusoLesson(Boolean(options?.nebensatz))
-    }
-    if (!wantsAduso(last) && looksLikeModelLeak(next)) {
-      next = 'Сформулируй вопрос короче — например «дай таблицу ADUSO».'
-    } else if (wantsNebensatz(last) && !/weil|придаточн|конец/i.test(next)) {
+    next = adusoLesson(Boolean(options?.nebensatz))
+  } else if (wantsSwissGerman(last) && (swissReplyNeedsLesson(next) || looksLikeModelLeak(next))) {
+    next = swissGermanLesson(wantsGrueziContrast(last))
+  } else if (!wantsAduso(last) && !wantsSwissGerman(last) && looksLikeModelLeak(next)) {
+    next = 'Сформулируй вопрос короче — например «дай таблицу ADUSO».'
+  } else if (wantsNebensatz(last) && !/weil|придаточн|конец/i.test(next)) {
     next = nebensatzLesson()
   }
   if (task === 'explain' || task === 'general' || task === 'say') {
@@ -542,6 +553,9 @@ export async function replyAsTutor(
   if (wantsAduso(last)) {
     return { text: adusoLesson(threadMentionsNebensatz(thread)) }
   }
+  if (wantsSwissGerman(last)) {
+    return { text: swissGermanLesson(wantsGrueziContrast(last)) }
+  }
   if (wantsNebensatz(last)) {
     return { text: nebensatzLesson(thread.slice(0, -1).map((item) => item.content).join('\n')) }
   }
@@ -572,26 +586,36 @@ export async function replyAsTutor(
 
   if (task === 'quiz' || task === 'grade') {
     const previousQuiz = lastQuizMessage(thread.slice(0, -1))
-    const { wish, topic } = buildQuizWish(last, thread)
+    const { wish, topic, focus } = buildQuizWish(last, thread)
     const grammar = topic.grammar || /(врем|предложен|грамматик|практик|тут|выше)/i.test(last)
     if (task === 'grade' && previousQuiz) recordQuizResult(language, previousQuiz.content, last)
     const line = task === 'grade' ? gradeLastQuiz(thread) : ''
     const catalog = catalogFromMessages(thread)
-    const lessonHint = [topic.label ? `Topic: ${topic.label}` : '', topic.excerpt].filter(Boolean).join('\n').slice(0, 480)
+    const lessonHint = [
+      focus ? `Focus lemma: ${focus}` : '',
+      topic.label ? `Topic: ${topic.label}` : '',
+      topic.excerpt,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 480)
     const improvised = await improviseQuiz(language, entries, wish, catalog, {
       grammar: grammar || Boolean(topic.label),
       lesson: lessonHint || topic.excerpt,
+      focus,
     })
     if (improvised) return replyWithHint(line ? `${line}\n\n${improvised}` : improvised, thread, task)
-    const localWish = topic.label
-      ? `${topic.label} грамматика формы — ${last}`
-      : grammar
-        ? `грамматика формы времена — ${topic.excerpt.slice(0, 120)} — ${last}`
-        : wish
+    const localWish = focus
+      ? `${focus} артикль грамматика формы — ${last}`
+      : topic.label
+        ? `${topic.label} грамматика формы — ${last}`
+        : grammar
+          ? `грамматика формы времена — ${topic.excerpt.slice(0, 120)} — ${last}`
+          : wish
     const local =
       task === 'grade'
         ? gradeLocalQuiz(language, thread, entries, localWish, catalog)
-        : makeLocalQuiz(language, entries, localWish, catalog)
+        : makeLocalQuiz(language, entries, localWish.includes('слово:') ? localWish : focus ? `${localWish} — слово: ${focus}` : localWish, catalog)
     if (local) return replyWithHint(local, thread, task)
   }
 
