@@ -466,4 +466,10 @@ check(
   Boolean(greetDraft?.entries.some((entry) => /guten tag/i.test(entry.term)) && !greetDraft?.entries.some((entry) => /käse|milch/i.test(entry.term))),
 )
 
+
+const rasskazhiPro = localTutorReply('de', [msg('user', 'расскажи про aduso')], [])
+expectAduso('расскажи про aduso', rasskazhiPro)
+check('расскажи про aduso is not ads platform', !/adsense|рекламн|платформ/i.test(rasskazhiPro))
+check('расскажи про aduso is not model leak', !/We must|User:|instructions/i.test(rasskazhiPro))
+
 console.log('all tutorChatQuality tests passed')

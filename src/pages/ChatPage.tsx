@@ -230,13 +230,6 @@ export function ChatPage() {
     })
     setSendError('')
 
-    if (wantsSpokenDialogue(content)) {
-      setDialogueMode('call')
-      setDialogueOpen(true)
-      setBusy(false)
-      return
-    }
-
     if (wantsAduso(content) || wantsAduso(posted)) {
       setBusy(true)
       try {
@@ -260,6 +253,16 @@ export function ChatPage() {
       }
       return
     }
+
+    if (wantsSpokenDialogue(content)) {
+      setDialogueMode('call')
+      setDialogueOpen(true)
+      setBusy(false)
+      return
+    }
+
+
+
 
     const homework = await loadHomework()
     if (homework.wantsHomework(content)) {

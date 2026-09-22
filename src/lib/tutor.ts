@@ -462,9 +462,12 @@ export function polishTutorReply(
     !wantsDeeper(last) &&
     !wantsAduso(last) &&
     !wantsNebensatz(last)
-  if (wantsAduso(last) && adusoReplyNeedsLesson(next)) {
-    next = adusoLesson(Boolean(options?.nebensatz))
-  } else if (wantsNebensatz(last) && !/weil|придаточн|конец/i.test(next)) {
+  if (wantsAduso(last) && (adusoReplyNeedsLesson(next) || looksLikeModelLeak(next))) {
+      next = adusoLesson(Boolean(options?.nebensatz))
+    }
+    if (!wantsAduso(last) && looksLikeModelLeak(next)) {
+      next = 'Сформулируй вопрос короче — например «дай таблицу ADUSO».'
+    } else if (wantsNebensatz(last) && !/weil|придаточн|конец/i.test(next)) {
     next = nebensatzLesson()
   }
   if (task === 'explain' || task === 'general' || task === 'say') {
@@ -506,6 +509,12 @@ async function cheapTutorReply(last: string, entries: WordEntry[], task: ReturnT
   )
   if (hit) return `<ex>${hit.term}</ex> <sec>${hit.translation ?? 'перевод появится позже'}</sec>`
   return ''
+}
+
+
+function looksLikeModelLeak(text: string) {
+  return /(?:^|\n)\s*(?:User:|We must|The last instruction|Never hide|secret must|tag phrase|admin|Co-authored|instructions say)/i.test(text)
+    || /<ex>Deutsch phrase<\/ex>/i.test(text)
 }
 
 export async function replyAsTutor(
